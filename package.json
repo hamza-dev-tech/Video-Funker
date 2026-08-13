@@ -1,0 +1,26 @@
+{
+  "name": "videofunker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Video Funker — AI-generated video content that books meetings. Monorepo: marketing client + BFF server.",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently -n client,server -c cyan,magenta \"npm:dev:client\" \"npm:dev:server\"",
+    "dev:client": "npm --workspace client run dev",
+    "dev:server": "npm --workspace server run dev",
+    "build": "npm --workspace client run build",
+    "start": "concurrently -n client,server -c cyan,magenta \"npm:start:client\" \"npm:start:server\"",
+    "start:client": "npm --workspace client run start",
+    "start:server": "npm --workspace server run start",
+    "lint": "npm --workspace client run lint"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

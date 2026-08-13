@@ -1,0 +1,744 @@
+/* ============================================================
+   Video Funker — marketing site
+   Base reset, motion keyframes and the interaction states that
+   the design expressed as style-hover / style-active attributes.
+   ============================================================ */
+
+/* Deliberately no global `box-sizing: border-box`. The approved design sizes
+   several fixed-width cards (the feed strip, the hero stack) in the default
+   content-box model and opts individual elements into border-box inline.
+   Flipping it globally silently shrinks those cards by their padding. */
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  overflow-x: clip;
+  background: #f7f9fc;
+  color: #12202e;
+  font-family: var(--font-body), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:hover {
+  opacity: 0.85;
+}
+
+img {
+  max-width: 100%;
+}
+
+/* ── Motion ─────────────────────────────────────────────────── */
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes riseBig {
+  from { opacity: 0; transform: translateY(70px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes floaty {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50%      { transform: translateY(-14px) rotate(var(--r, 0deg)); }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.15; }
+}
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes slideL {
+  from { opacity: 0; transform: translateX(-70px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes drawX {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes ringPulse {
+  0%   { box-shadow: 0 0 0 0 #ff901b59; }
+  70%  { box-shadow: 0 0 0 18px #ff901b00; }
+  100% { box-shadow: 0 0 0 0 #ff901b00; }
+}
+
+/* ── Scroll reveals ──────────────────────────────────────────
+   Driven by IntersectionObserver (see components/marketing/Reveal.js),
+   not `animation-timeline: view()`. The timeline version only exists in
+   Chromium and its `both` fill-mode left Firefox and Safari with either a
+   blank page or one simultaneous on-load flash. A transition triggered by
+   a data attribute behaves identically in every engine.
+
+   The resting (hidden) state is authored here so it ships in the server
+   HTML — nothing pops between first paint and hydration. */
+
+[data-reveal] {
+  opacity: 0;
+  transition:
+    opacity 0.75s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.75s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+[data-reveal='up'] { transform: translateY(30px); }
+[data-reveal='left'] { transform: translateX(-56px); }
+[data-reveal='right'] { transform: translateX(56px); }
+[data-reveal='scale'] { transform: translateY(38px) scale(0.97); }
+[data-reveal='pop'] { transform: scale(0.86); }
+[data-reveal='fade'] { transform: none; }
+
+[data-reveal][data-shown] {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+  /* This block can only reach the CSS layer. The canvas flow field, the hero
+     parallax, the cursor ring and the CTA glow are all driven from JS, so each
+     of them checks the same query itself — see the `reducedMotion()` helper in
+     components/marketing/motion.js. */
+}
+
+/* ── Focus ───────────────────────────────────────────────────
+   The design removes underlines and paints its own pill buttons, several of
+   them inside `overflow: hidden` parents that clip the UA's default ring. So
+   the page has to draw its own, and it has to be drawn with `outline` —
+   a box-shadow ring is what gets clipped. */
+
+:focus-visible {
+  outline: 3px solid #0560be;
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* On the orange buttons the blue ring reads as a defect rather than a focus
+   state; ink is the same colour their own label already uses. */
+.vf-btn-primary:focus-visible,
+.vf-btn-sm:focus-visible,
+.vf-btn-cta:focus-visible {
+  outline-color: #2a1a04;
+}
+
+/* Anything on the blue panels needs a light ring to be visible at all. */
+#why-video :focus-visible,
+#proof :focus-visible {
+  outline-color: #ffffff;
+}
+
+/* Keyboard users land here first; it stays out of the layout until focused. */
+.vf-skip {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 100;
+  background: #ffffff;
+  color: #12202e;
+  font: 600 15px var(--font-body), sans-serif;
+  padding: 12px 20px;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px #0429521a;
+  transition: top 0.2s;
+}
+.vf-skip:focus {
+  top: 12px;
+}
+
+/* ── Interaction states ─────────────────────────────────────── */
+
+.vf-logo {
+  transition: transform 0.25s;
+}
+.vf-logo:hover {
+  transform: scale(1.05);
+}
+
+/* ── Nav ─────────────────────────────────────────────────────
+   The pill→sheet morph is a cross-fade between two backdrop layers, not a
+   geometry transition. Neither layer is ever in the layout, so the only thing
+   that animates is opacity. See components/marketing/Nav.js. */
+
+.vf-nav-pill,
+.vf-nav-sheet {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+  will-change: opacity;
+}
+
+.vf-nav-pill {
+  margin: 16px 24px;
+  border-radius: 100px;
+  background: #ffffffd9;
+  backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid #dce4ee;
+  box-shadow: 0 8px 32px #0429521a;
+}
+
+.vf-nav-sheet {
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(22px) saturate(1.9);
+  box-shadow: inset 0 -1px 0 rgba(220, 228, 238, 0.8), 0 12px 40px rgba(4, 41, 82, 0.12);
+}
+
+.vf-navlink {
+  transition: background 0.2s, color 0.2s;
+}
+.vf-navlink:hover {
+  background: #eef3f9;
+  color: #0560be;
+}
+
+/* ── Mobile menu ─────────────────────────────────────────────
+   Below 1080px the link row and "Log in" are hidden. Before this there was
+   nothing behind them: a phone visitor got a logo and "Start free", could not
+   reach any section, and could not log in. */
+
+.vf-nav-toggle {
+  display: none;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid #dce4ee;
+  border-radius: 100px;
+  cursor: pointer;
+  color: #12202e;
+}
+
+.vf-burger {
+  display: block;
+  width: 18px;
+  height: 12px;
+  position: relative;
+}
+.vf-burger > span {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1), opacity 0.2s;
+}
+.vf-burger > span:nth-child(1) { top: 0; }
+.vf-burger > span:nth-child(2) { top: 5px; }
+.vf-burger > span:nth-child(3) { top: 10px; }
+
+.vf-burger.is-open > span:nth-child(1) { transform: translateY(5px) rotate(45deg); }
+.vf-burger.is-open > span:nth-child(2) { opacity: 0; }
+.vf-burger.is-open > span:nth-child(3) { transform: translateY(-5px) rotate(-45deg); }
+
+.vf-mobile-menu {
+  position: absolute;
+  top: 100%;
+  left: 24px;
+  right: 24px;
+  background: #ffffff;
+  border: 1px solid #dce4ee;
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(4, 41, 82, 0.18);
+  padding: 8px;
+  overflow: hidden;
+}
+.vf-mobile-menu[hidden] {
+  display: none;
+}
+.vf-mobile-menu ul {
+  list-style: none;
+}
+.vf-mobile-menu a {
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+  padding: 0 18px;
+  border-radius: 14px;
+  font: 500 17px var(--font-body), sans-serif;
+  color: #12202e;
+  transition: background 0.2s;
+}
+.vf-mobile-menu a:hover {
+  background: #eef3f9;
+}
+.vf-mobile-menu-login {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #dce4ee;
+}
+.vf-mobile-menu-login a {
+  color: #52657c;
+}
+.vf-press:active {
+  transform: scale(0.95);
+}
+
+.vf-btn-sm {
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+.vf-btn-sm:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px #ff901b40;
+}
+.vf-btn-sm:active {
+  transform: scale(0.95);
+}
+
+.vf-btn-primary {
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+.vf-btn-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px #ff901b40;
+}
+.vf-btn-primary:active {
+  transform: scale(0.96);
+}
+
+.vf-btn-ghost {
+  transition: border-color 0.25s, transform 0.25s, background 0.25s;
+}
+.vf-btn-ghost:hover {
+  border-color: #ff901b;
+  transform: translateY(-3px);
+  background: #ffffff;
+}
+.vf-btn-ghost:active {
+  transform: scale(0.96);
+}
+
+.vf-btn-cta {
+  transition: transform 0.25s;
+}
+.vf-btn-cta:hover {
+  transform: translateY(-3px) scale(1.04);
+}
+.vf-btn-cta:active {
+  transform: scale(0.96);
+}
+
+/* ── Headline words ─────────────────────────────────────────
+   Each word in the hero headline is its own target: it lifts on a slight
+   overshoot and an accent bar wipes in underneath, echoing the highlighter
+   already sitting under "Video wins.". :active carries the same treatment
+   so a tap does something on touch, where there is no hover to give. */
+
+.vf-word {
+  display: inline-block;
+  position: relative;
+  transform-origin: bottom center;
+  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform;
+  -webkit-tap-highlight-color: transparent;
+}
+.vf-word:hover,
+.vf-word:active {
+  transform: translateY(-9px);
+}
+
+.vf-word-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.02em;
+  height: 0.07em;
+  border-radius: 999px;
+  background: #ff901b;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1);
+  pointer-events: none;
+}
+.vf-word:hover .vf-word-bar,
+.vf-word:active .vf-word-bar {
+  transform: scaleX(1);
+}
+
+/* Tilted cards keep their rest angle in a custom property so the hover rule
+   can replace the whole transform without fighting an inline style. */
+.vf-tilt {
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.vf-feedcard:hover {
+  transform: rotate(0deg) translateY(-8px);
+  box-shadow: 0 18px 44px #04295222;
+}
+.vf-wall:hover {
+  transform: rotate(0deg) scale(1.03);
+}
+
+/* ── Feed post cards ────────────────────────────────────────
+   Built in markup rather than shipped as artwork: the corners are a real
+   radius, the type stays crisp and selectable, and the cards reflow. The
+   whole section's argument is the contrast between the two variants, so
+   the dull one is deliberately flat and the video one carries the weight. */
+
+/* The supplied post cards are finished artwork, so the strip just frames
+   them. Their own rounded corners carry transparency outside the curve, so
+   the shadow rides the alpha instead of drawing a box behind it. */
+.vf-postcard {
+  flex: none;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 22px 50px rgba(4, 41, 82, 0.3);
+}
+
+/* Height is set in JS to match the artwork cards exactly. A feed can be
+   ragged; a horizontal strip of mismatched cards just looks broken. */
+.vf-post {
+  flex: none;
+  box-sizing: border-box;
+  border-radius: 20px;
+  padding: 16px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  white-space: normal;
+  text-align: left;
+}
+
+.vf-post-ai {
+  background: #0a4f9ecc;
+  border: 1px solid #4189d466;
+  color: #b9d6f2;
+}
+.vf-post-video {
+  background: #ffffff;
+  border: 1px solid #ff901b;
+  color: #12202e;
+  box-shadow: 0 18px 40px rgba(4, 41, 82, 0.26);
+}
+
+.vf-post-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.vf-post-av {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: none;
+  display: block;
+  background: #ffffff1f;
+}
+.vf-post-av img {
+  display: block;
+  width: 38px;
+  height: 38px;
+  object-fit: cover;
+}
+.vf-post-who {
+  font: 700 14px var(--font-body), sans-serif;
+  color: inherit;
+}
+.vf-post-ai .vf-post-who {
+  color: #dbe9f8;
+}
+.vf-post-meta {
+  font: 400 12px var(--font-body), sans-serif;
+  opacity: 0.72;
+}
+.vf-post-body {
+  font: 400 14px/1.55 var(--font-body), sans-serif;
+  margin: 0;
+}
+
+/* The wall of text: fills the card, then dissolves rather than being cut.
+   "…see more" sits outside the masked element so the fade doesn't eat it. */
+.vf-post-wall-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.vf-post-wall {
+  height: 100%;
+  overflow: hidden;
+  opacity: 0.82;
+  -webkit-mask-image: linear-gradient(#000 52%, transparent 92%);
+  mask-image: linear-gradient(#000 52%, transparent 92%);
+}
+.vf-post-more {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  font: 500 13px var(--font-body), sans-serif;
+  color: #cfe4fabf;
+}
+
+/* Matches the artwork's own 2.28:1 framing. Forcing these into a 16:9 slot
+   made object-fit crop the first letter off every title card. */
+.vf-post-thumb {
+  position: relative;
+  aspect-ratio: 640 / 281;
+  flex: none;
+  margin-top: auto;
+  border-radius: 11px;
+  overflow: hidden;
+  background: #12253c;
+}
+.vf-post-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 50%;
+  background: #ff901b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(12, 43, 74, 0.34), 0 0 0 6px #ffffff3d;
+}
+.vf-post-play > span {
+  width: 0;
+  height: 0;
+  border-left: 13px solid #2a1a04;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  margin-left: 4px;
+}
+.vf-post-dur {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  background: #0c2b4ac2;
+  color: #fff;
+  font: 600 11px var(--font-body), sans-serif;
+  padding: 3px 7px;
+  border-radius: 5px;
+}
+
+.vf-post-stats {
+  display: flex;
+  gap: 14px;
+  padding-top: 10px;
+  border-top: 1px solid currentColor;
+  font: 600 13px var(--font-body), sans-serif;
+  opacity: 0.85;
+}
+.vf-post-video .vf-post-stats {
+  border-top-color: #dce4ee;
+  opacity: 1;
+  color: #52657c;
+}
+.vf-post-ai .vf-post-stats {
+  border-top-color: #ffffff26;
+}
+.vf-post-video .vf-post-stat-hot {
+  color: #a85800;
+}
+
+/* ── Deliverable cards ──────────────────────────────────────
+   Narrow cards stack text over the artwork accent; the wide card puts the
+   accent beside the text instead. The accent is width-capped either way so
+   one card can never inflate its grid row. */
+
+.vf-delcard {
+  flex-direction: column;
+  transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+.vf-delcard .vf-accent {
+  margin-top: auto;
+  padding-top: 22px;
+  width: 100%;
+  max-width: 380px;
+}
+.vf-delcard-wide {
+  flex-direction: row;
+  align-items: stretch;
+  gap: 28px;
+}
+/* Text stays top-aligned so this card's icon lines up with its neighbour's;
+   only the artwork centres against the taller column. */
+.vf-delcard-wide .vf-accent {
+  align-self: center;
+  margin-top: 0;
+  padding-top: 0;
+  width: 380px;
+  max-width: 42%;
+  flex: none;
+}
+
+@media (max-width: 900px) {
+  .vf-delcard-wide {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .vf-delcard-wide .vf-accent {
+    width: 100%;
+    max-width: 380px;
+    margin-top: auto;
+    padding-top: 22px;
+  }
+}
+.vf-delcard:hover {
+  transform: translateY(-8px);
+  border-color: #ff901b;
+  box-shadow: 0 20px 48px #04295215;
+}
+
+.vf-glyph {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.vf-glyph:hover {
+  transform: rotate(-10deg) scale(1.15);
+}
+
+.vf-cmprow {
+  transition: background 0.25s;
+}
+.vf-cmprow:hover {
+  background: #eef3f9;
+}
+
+/* Footer links were 20px tall — half the 44px minimum for a touch target.
+   The padding is vertical only and cancelled by a negative margin, so the row
+   keeps the spacing the design specified while the hit area doubles. */
+.vf-footlink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: -12px 0;
+  transition: color 0.2s;
+}
+.vf-footlink:hover {
+  color: #0560be;
+}
+
+/* The bespoke cursor is a pointer-device affordance; on touch it is dead
+   weight, and coarse pointers never fire the mousemove that reveals it. */
+@media (pointer: coarse) {
+  .vf-cursor-ring {
+    display: none !important;
+  }
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+
+@media (max-width: 1080px) {
+  .vf-nav-links {
+    display: none !important;
+  }
+  .vf-nav-toggle {
+    display: inline-flex;
+  }
+  .vf-hero-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .vf-hero-cards {
+    display: none !important;
+  }
+  .vf-steps {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .vf-deliverables {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .vf-proofs {
+    grid-template-columns: 1fr !important;
+  }
+  .vf-wall-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Below this the logo, "Log in" and "Start free" can no longer share a row —
+   drop the secondary link so the primary action keeps its full label. It is
+   reachable from the menu, which is why dropping it is now safe. */
+@media (max-width: 600px) {
+  .vf-nav-login {
+    display: none !important;
+  }
+  .vf-nav-row {
+    padding: 18px 16px !important;
+  }
+  .vf-nav-pill {
+    margin: 10px 12px;
+  }
+  .vf-mobile-menu {
+    left: 12px;
+    right: 12px;
+  }
+}
+
+@media (max-width: 720px) {
+  .vf-pad {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+  .vf-steps,
+  .vf-deliverables {
+    grid-template-columns: 1fr !important;
+  }
+  /* The grid item is the reveal wrapper, not the card. Left spanning 2, it
+     makes Grid invent an implicit second column and the single-column rule
+     above silently does nothing. */
+  .vf-delcard-wrap {
+    grid-column: span 1 !important;
+  }
+  .vf-hero-actions {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+  .vf-hero-actions > a {
+    text-align: center;
+  }
+  .vf-how-head {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+  /* The comparison table can't shrink below its five columns — let it
+     scroll inside its own frame instead of pushing the page sideways. */
+  .vf-compare-scroll {
+    overflow-x: auto;
+  }
+  .vf-compare-grid {
+    min-width: 640px;
+  }
+}
