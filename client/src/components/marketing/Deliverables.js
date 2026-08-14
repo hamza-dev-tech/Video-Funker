@@ -1,8 +1,9 @@
 import Image from 'next/image';
 
+import Icon, { COMPARE_LABELS } from '@/components/marketing/icons';
 import Reveal from '@/components/marketing/Reveal';
 import { compareHeading, compareRows, deliverables, deliverablesHeading } from '@/config/content';
-import { c, font } from '@/config/site';
+import { c, font, space, type } from '@/config/site';
 
 const GRID = '1.5fr repeat(3, 1fr) 1fr';
 
@@ -15,14 +16,14 @@ export default function Deliverables() {
         background: c.panel,
         borderTop: `1px solid ${c.line}`,
         borderBottom: `1px solid ${c.line}`,
-        padding: '100px 48px',
+        padding: `${space.section}px 48px`,
       }}
     >
       <div style={{ maxWidth: 1280, margin: '0 auto' }}>
         <Reveal
           as="h2"
           style={{
-            font: `600 clamp(34px, 3.4vw, 52px)/1.05 ${font.display}`,
+            font: `600 ${type.h2}/1.05 ${font.display}`,
             letterSpacing: '-0.02em',
             margin: '0 0 12px',
             maxWidth: 700,
@@ -33,7 +34,7 @@ export default function Deliverables() {
         <Reveal
           as="p"
           delay={100}
-          style={{ font: `400 19px/1.6 ${font.body}`, color: c.muted, maxWidth: 620, margin: '0 0 48px' }}
+          style={{ font: `400 ${type.lead}/1.6 ${font.body}`, color: c.muted, maxWidth: 620, margin: '0 0 48px' }}
         >
           {deliverablesHeading.sub}
         </Reveal>
@@ -76,15 +77,14 @@ export default function Deliverables() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      font: `600 19px ${font.display}`,
                       color: c.ink,
                       animation: `floaty 7s ${d.delay} ease-in-out infinite`,
                       flex: 'none',
                     }}
                   >
-                    {d.glyph}
+                    <Icon name={d.glyph} size={22} />
                   </div>
-                  <h3 style={{ font: `600 21px ${font.display}`, letterSpacing: '-0.01em', margin: '4px 0 0' }}>
+                  <h3 style={{ font: `600 ${type.title} ${font.display}`, letterSpacing: '-0.01em', margin: '4px 0 0' }}>
                     {d.title}
                   </h3>
                   <p style={{ font: `400 15px/1.6 ${font.body}`, color: c.muted, margin: 0 }}>{d.body}</p>
@@ -113,7 +113,7 @@ export default function Deliverables() {
           <Reveal
             as="h3"
             style={{
-              font: `600 clamp(26px, 2.4vw, 36px)/1.15 ${font.display}`,
+              font: `600 ${type.h3}/1.15 ${font.display}`,
               letterSpacing: '-0.02em',
               margin: '0 0 10px',
               maxWidth: 760,
@@ -129,11 +129,19 @@ export default function Deliverables() {
             {compareHeading.sub}
           </Reveal>
 
+          {/* Two boxes, deliberately. The frame owns the rounded corners and
+              clips to them; the scroller inside it owns the horizontal
+              overflow. They used to be one element with an inline
+              `overflow: hidden`, which beat the `overflow-x: auto` the mobile
+              media query was trying to set — so on every phone the table
+              clipped 307px off its own right edge and the "Video Funker"
+              column, the entire point of the comparison, was unreachable. */}
           <Reveal
             variant="scale"
             delay={140}
-            className="vf-compare-scroll"
+            className="vf-compare-frame"
             style={{
+              position: 'relative',
               border: `1px solid ${c.line}`,
               borderRadius: 18,
               overflow: 'hidden',
@@ -142,7 +150,8 @@ export default function Deliverables() {
               boxShadow: '0 18px 48px #0429520f',
             }}
           >
-            <div className="vf-compare-grid">
+            <div className="vf-compare-scroll">
+              <div className="vf-compare-grid">
               <div
                 style={{
                   display: 'grid',
@@ -200,25 +209,46 @@ export default function Deliverables() {
                   ].map(([v, col], i) => (
                     <div
                       key={i}
-                      style={{ padding: '15px 12px', textAlign: 'center', font: `500 16px ${font.body}`, color: col }}
+                      style={{ padding: '15px 12px', display: 'grid', placeItems: 'center', color: col }}
                     >
-                      {v}
+                      <Icon name={v} size={20} label={`${COMPARE_LABELS[v]} — ${row.label}, ${compareHeading.columns[i]}`} />
                     </div>
                   ))}
                   <div
                     style={{
                       padding: '15px 12px',
-                      textAlign: 'center',
-                      font: `700 16px ${font.body}`,
+                      display: 'grid',
+                      placeItems: 'center',
                       color: c.orangeDark,
                       background: '#ff901b1f',
                     }}
                   >
-                    {row.c4}
+                    <Icon
+                      name={row.c4}
+                      size={20}
+                      strokeWidth={2.4}
+                      label={`${COMPARE_LABELS[row.c4]} — ${row.label}, Video Funker`}
+                    />
                   </div>
                 </div>
               ))}
+              </div>
             </div>
+          </Reveal>
+
+          {/* `~` meant "partly" and nothing on the page said so. */}
+          <Reveal
+            as="ul"
+            delay={200}
+            className="vf-compare-legend"
+            style={{ font: `500 14px ${font.body}`, color: c.muted }}
+          >
+            {Object.entries(COMPARE_LABELS).map(([glyph, label]) => (
+              <li key={glyph}>
+                <Icon name={glyph} size={16} />
+                {label}
+              </li>
+            ))}
           </Reveal>
         </div>
       </div>

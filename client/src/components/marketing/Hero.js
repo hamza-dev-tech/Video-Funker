@@ -3,8 +3,10 @@
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 
+import Icon from '@/components/marketing/icons';
+import { rafLoop, reducedMotion } from '@/components/marketing/motion';
 import { hero } from '@/config/content';
-import { appLinks, c, font, EASE } from '@/config/site';
+import { appLinks, c, font, type, EASE } from '@/config/site';
 
 const STREAM_COLORS = [c.blue, c.blueMid, c.bluePale, c.orange, '#ffc824'];
 const PARTICLES = 260;
@@ -35,15 +37,26 @@ export default function Hero() {
   const canvas = useRef(null);
   const cards = useRef(null);
   const state = useRef({ px: 0, py: 0, tx: 0, ty: 0, mx: -9999, my: -9999 });
-  const [views, setViews] = useState(0);
+  /* Seeded at the final value, not at zero. The count-up is decoration, and a
+     counter that starts at 0 renders a broken-looking "0 views" any time the
+     animation cannot run — a background tab, reduced motion, slow hydration.
+     The effect below animates up to it only when it can; otherwise the real
+     number was always there. */
+  const [views, setViews] = useState(hero.viewsTarget);
 
   /* ── Flow field ─────────────────────────────────────────────
      Drifting ribbons carried by a curl-ish noise field. The pointer
-     adds a swirl, so the banner reacts without ever being a toy. */
+     adds a swirl, so the banner reacts without ever being a toy.
+
+     260 ribbons redrawn every frame is the heaviest thing on the page, and
+     `prefers-reduced-motion` in CSS cannot reach a canvas — so it is checked
+     here. Reduced motion gets one static frame instead of nothing, which keeps
+     the hero from becoming a flat colour field. */
   useEffect(() => {
     const cv = canvas.current;
     if (!cv) return undefined;
     const ctx = cv.getContext('2d');
+    const still = reducedMotion();
 
     let W = 0;
     let H = 0;
@@ -139,6 +152,14 @@ export default function Hero() {
       raf = requestAnimationFrame(tick);
     };
 
+    // Reduced motion: paint one frame's worth of ribbons and stop there.
+    if (still) {
+      tick(0);
+      cancelAnimationFrame(raf);
+      raf = 0;
+      return () => window.removeEventListener('resize', fit);
+    }
+
     // Only simulate while the hero is actually on screen.
     const gate = () => {
       const r = cv.getBoundingClientRect();
@@ -161,26 +182,28 @@ export default function Hero() {
     };
   }, []);
 
-  /* ── Card parallax ──────────────────────────────────────────── */
-  useEffect(() => {
-    let raf = 0;
-    const tick = () => {
-      const h = state.current;
-      h.px += (h.tx - h.px) * 0.06;
-      h.py += (h.ty - h.py) * 0.06;
-      if (cards.current) {
+  /* ── Card parallax ──────────────────────────────────────────────
+     Gated on the card stack itself, which does double duty: below 1080px the
+     stack is `display: none`, so it never intersects and the loop never runs.
+     It used to spin at 60fps for the life of the page, writing transforms to
+     an element that phones and tablets do not even render. */
+  useEffect(
+    () =>
+      rafLoop(cards.current, () => {
+        const h = state.current;
+        h.px += (h.tx - h.px) * 0.06;
+        h.py += (h.ty - h.py) * 0.06;
+        if (!cards.current) return;
         cards.current.style.transform =
           `perspective(1100px) rotateY(${(h.px * -7).toFixed(2)}deg) rotateX(${(h.py * 5).toFixed(2)}deg) ` +
           `translate(${(h.px * -14).toFixed(1)}px, ${(h.py * -10).toFixed(1)}px)`;
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, []);
+      }),
+    []
+  );
 
   /* ── View counter ───────────────────────────────────────────── */
   useEffect(() => {
+    if (reducedMotion()) return undefined;
     const t0 = performance.now();
     const dur = 2200;
     let raf = 0;
@@ -247,7 +270,7 @@ export default function Hero() {
         <div>
           <h1
             style={{
-              font: `600 clamp(52px, 5.6vw, 84px)/1.02 ${font.display}`,
+              font: `600 ${type.hero}/1.02 ${font.display}`,
               letterSpacing: '-0.02em',
               margin: '0 0 30px',
             }}
@@ -491,7 +514,12 @@ export default function Hero() {
                 color: c.muted,
               }}
             >
-              <span style={{ color: c.orangeDeep }}>▶ {views.toLocaleString()} views</span>
+              {/* `orangeDeep` is a large-text colour; at 13px it measured
+                  3.47:1. And the play mark is an icon, not a character. */}
+              <span style={{ color: c.orangeDark, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <Icon name="▶" size={14} />
+                {views.toLocaleString()} views
+              </span>
               <span>{hero.post.comments}</span>
             </div>
           </div>

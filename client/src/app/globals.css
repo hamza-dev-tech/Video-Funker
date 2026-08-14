@@ -186,7 +186,11 @@ img {
 
 /* ── Interaction states ─────────────────────────────────────── */
 
+/* The lockup is 34px tall; the link around it has to reach 44 to be a legal
+   touch target. Padding rather than height so the logo stays optically placed. */
 .vf-logo {
+  min-height: 44px;
+  padding: 5px 0;
   transition: transform 0.25s;
 }
 .vf-logo:hover {
@@ -287,6 +291,13 @@ img {
 .vf-mobile-menu[hidden] {
   display: none;
 }
+/* Resizing from phone to desktop with the menu open would otherwise leave it
+   sitting under a nav that has its full link row back. */
+@media (min-width: 1081px) {
+  .vf-mobile-menu {
+    display: none;
+  }
+}
 .vf-mobile-menu ul {
   list-style: none;
 }
@@ -316,6 +327,10 @@ img {
 }
 
 .vf-btn-sm {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  box-sizing: border-box;
   transition: transform 0.25s, box-shadow 0.25s;
 }
 .vf-btn-sm:hover {
@@ -419,11 +434,15 @@ img {
 /* The supplied post cards are finished artwork, so the strip just frames
    them. Their own rounded corners carry transparency outside the curve, so
    the shadow rides the alpha instead of drawing a box behind it. */
+/* The shadow stays deliberately light. The artwork is already near-white on
+   the section's most saturated blue — roughly 4.9:1 against the background —
+   so a heavy drop shadow on top of that reads as a spotlight rather than a
+   card, and the strip starts looking like lit panels instead of a feed. */
 .vf-postcard {
   flex: none;
   border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 22px 50px rgba(4, 41, 82, 0.3);
+  box-shadow: 0 14px 34px rgba(4, 41, 82, 0.18);
 }
 
 /* Height is set in JS to match the artwork cards exactly. A feed can be
@@ -440,10 +459,14 @@ img {
   text-align: left;
 }
 
+/* Solid enough to read as a real post that simply is not worth reading, rather
+   than a translucent placeholder. The argument only lands if both variants
+   look finished — dimming this one as well as lifting the artwork made the gap
+   compound until these looked broken. */
 .vf-post-ai {
-  background: #0a4f9ecc;
-  border: 1px solid #4189d466;
-  color: #b9d6f2;
+  background: #0a4f9eeb;
+  border: 1px solid #4189d48c;
+  color: #c3dcf5;
 }
 .vf-post-video {
   background: #ffffff;
@@ -495,10 +518,11 @@ img {
   flex: 1;
   min-height: 0;
 }
+/* No extra opacity here — the mask already does the fading. Stacking a global
+   0.82 on top of it washed the copy out before the gradient even started. */
 .vf-post-wall {
   height: 100%;
   overflow: hidden;
-  opacity: 0.82;
   -webkit-mask-image: linear-gradient(#000 52%, transparent 92%);
   mask-image: linear-gradient(#000 52%, transparent 92%);
 }
@@ -637,18 +661,134 @@ img {
   background: #eef3f9;
 }
 
-/* Footer links were 20px tall — half the 44px minimum for a touch target.
-   The padding is vertical only and cancelled by a negative margin, so the row
-   keeps the spacing the design specified while the hit area doubles. */
+/* ── How it works ────────────────────────────────────────────
+   Wide: a 320vh runway with a sticky stage that crossfades screenshots.
+   Narrow: neither. See components/marketing/HowItWorks.js for why. */
+
+.vf-how {
+  position: relative;
+  height: 320vh;
+}
+.vf-how-inner {
+  position: sticky;
+  top: 0;
+  min-height: 100vh;
+}
+.vf-step-shot {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .vf-how {
+    height: auto;
+  }
+  .vf-how-inner {
+    position: static;
+    min-height: 0;
+  }
+  .vf-how-stage-wrap,
+  .vf-how-dots {
+    display: none;
+  }
+  /* Without the runway there is no scroll progress, so there is no active
+     step — every card is equally present. The dimming is an inline style
+     driven by that state, so overriding it needs the weight. */
+  .vf-step {
+    opacity: 1 !important;
+    background: #ffffff !important;
+    border-color: #dce4ee !important;
+  }
+  .vf-step-shot {
+    display: block;
+    margin-top: 16px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #dce4ee;
+    line-height: 0;
+  }
+  .vf-step-shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+}
+
+/* ── Comparison table ────────────────────────────────────────
+   The frame clips to the radius, the scroller inside it carries the overflow.
+   `auto` means the desktop layout — which fits inside 940px — never shows a
+   scrollbar, while the narrow layout can actually be reached. */
+
+.vf-compare-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+/* Touch scrollbars are invisible, so on the widths where the table really does
+   overflow, the edge has to say so. Sits above the scroller, ignores pointers,
+   and disappears the moment the grid fits. */
+.vf-compare-frame::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 56px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  background: linear-gradient(90deg, #ffffff00, #ffffffe6);
+}
+
+.vf-compare-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  list-style: none;
+  margin-top: 16px;
+  max-width: 940px;
+}
+.vf-compare-legend li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* ── Footer ──────────────────────────────────────────────────
+   Footer links were 20px tall — under half the 44px minimum for a touch
+   target. They are now full-height rows in a list rather than a wrapped row
+   of inline text. */
+
+.vf-footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 40px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.vf-footer-heading {
+  font: 600 13px var(--font-body), sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #52657c;
+  margin-bottom: 6px;
+}
+
 .vf-footlink {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   min-height: 44px;
-  margin: -12px 0;
   transition: color 0.2s;
 }
 .vf-footlink:hover {
   color: #0560be;
+}
+
+.vf-footer-base {
+  max-width: 1280px;
+  margin: 40px auto 0;
+  padding-top: 24px;
 }
 
 /* The bespoke cursor is a pointer-device affordance; on touch it is dead
@@ -735,10 +875,11 @@ img {
   }
   /* The comparison table can't shrink below its five columns — let it
      scroll inside its own frame instead of pushing the page sideways. */
-  .vf-compare-scroll {
-    overflow-x: auto;
-  }
   .vf-compare-grid {
     min-width: 640px;
+  }
+  /* Only here does it actually overflow, so only here does the edge hint. */
+  .vf-compare-frame::after {
+    opacity: 1;
   }
 }

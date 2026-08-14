@@ -103,6 +103,8 @@ export const type = {
   display: 'clamp(44px, 4.8vw, 68px)',
   h2: 'clamp(36px, 4vw, 56px)',
   h3: 'clamp(26px, 2.4vw, 36px)',
+  /** The big number on a proof card. */
+  stat: 'clamp(40px, 3.6vw, 52px)',
   title: '21px',
   lead: '20px',
   body: '16px',

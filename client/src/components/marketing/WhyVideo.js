@@ -2,12 +2,12 @@ import Image from 'next/image';
 
 import Reveal from '@/components/marketing/Reveal';
 import { feed, whyVideo } from '@/config/content';
-import { c, font } from '@/config/site';
+import { c, font, type } from '@/config/site';
 
 /* Wide enough that one full loop outruns the viewport — any narrower and the
    same card turns up twice on screen at once. */
-const CARD_W = 372;
-const CARD_GAP = 24;
+const CARD_W = 336;
+const CARD_GAP = 22;
 const ART_W = 640;
 const ART_H = 726;
 /* Every card in the strip is pinned to this height — artwork included. The
@@ -16,10 +16,10 @@ const ART_H = 726;
    bottom. Cropping each one to a shared box costs a pixel or two off the
    edge and nothing that reads. */
 const CARD_H = Math.round((CARD_W * ART_H) / ART_W);
-/* Seconds of travel per card, so adding a post lengthens the loop instead of
-   speeding the whole strip up. This is the dial for the strip's pace:
-   lower is faster, and the card pitch is 396px, so 5.5 ≈ 72px/s. */
-const SECONDS_PER_CARD = 5.5;
+/* The strip's pace, stated as speed rather than duration. Expressing it this
+   way means neither adding a card nor resizing one changes how fast the feed
+   actually moves — the duration is derived from both below. */
+const PIXELS_PER_SECOND = 72;
 
 function Avatar({ src }) {
   return (
@@ -125,7 +125,7 @@ export default function WhyVideo() {
           as="h2"
           variant="left"
           style={{
-            font: `600 clamp(40px, 4.2vw, 64px)/1.05 ${font.display}`,
+            font: `600 ${type.h2}/1.05 ${font.display}`,
             letterSpacing: '-0.02em',
             maxWidth: 820,
             margin: '0 0 26px',
@@ -153,7 +153,7 @@ export default function WhyVideo() {
             display: 'flex',
             width: 'max-content',
             alignItems: 'flex-start',
-            animation: `marquee ${(feed.length * SECONDS_PER_CARD).toFixed(1)}s linear infinite`,
+            animation: `marquee ${((feed.length * (CARD_W + CARD_GAP)) / PIXELS_PER_SECOND).toFixed(1)}s linear infinite`,
           }}
         >
           {feed.map((item, i) => (

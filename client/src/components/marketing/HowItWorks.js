@@ -4,12 +4,26 @@ import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 
 import { howHeading, steps } from '@/config/content';
-import { c, font } from '@/config/site';
+import { c, font, space, type } from '@/config/site';
 
 /**
  * A tall section with a sticky stage: scrolling through it walks the four
  * steps, crossfading a real product screenshot for each one. The cards are
  * also clickable, which scrolls to the matching slice.
+ *
+ * Below 900px that whole mechanism is switched off in CSS. At phone width the
+ * sticky stage rendered the screenshot at 335×191px — these are dense product
+ * UIs, so at that size they are texture rather than information — and it cost
+ * 3.2 screens of scroll-jacked travel to walk past four of them. So the narrow
+ * layout drops the stage, drops the 320vh runway, and gives each step its own
+ * full-width screenshot inside its own card. Same four steps, same images,
+ * read at a size that works and scrolled at the reader's own pace.
+ *
+ * Both layouts ship in the same HTML and CSS picks one, so there is no
+ * hydration branch and nothing reflows after load. The images share their URLs
+ * across the two, so the duplicate markup costs no extra bytes — and each copy
+ * is lazy, so the one that is `display: none` never intersects and never
+ * fetches.
  */
 export default function HowItWorks() {
   const wrap = useRef(null);
@@ -21,7 +35,10 @@ export default function HowItWorks() {
       if (!el) return;
       const r = el.getBoundingClientRect();
       const total = r.height - window.innerHeight;
-      const prog = Math.min(1, Math.max(0, -r.top / Math.max(1, total)));
+      // In the compact layout the section is only as tall as its content, so
+      // there is no progress to read and nothing to drive.
+      if (total <= 0) return;
+      const prog = Math.min(1, Math.max(0, -r.top / total));
       setActive(Math.min(steps.length - 1, Math.floor(prog * steps.length)));
     };
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -33,22 +50,20 @@ export default function HowItWorks() {
     const el = wrap.current;
     if (!el) return;
     const total = el.offsetHeight - window.innerHeight;
+    if (total <= 0) return; // compact layout — the card is already the content
     const top = el.getBoundingClientRect().top + window.scrollY;
     window.scrollTo({ top: top + total * (i / steps.length + 0.02), behavior: 'smooth' });
   };
 
   return (
-    <section id="how" ref={wrap} style={{ height: '320vh', position: 'relative' }}>
+    <section id="how" ref={wrap} className="vf-how">
       <div
-        className="vf-pad"
+        className="vf-pad vf-how-inner"
         style={{
-          position: 'sticky',
-          top: 0,
-          minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
-          padding: '90px 48px 40px',
+          padding: `${space.section}px 48px 40px`,
           maxWidth: 1280,
           margin: '0 auto',
           boxSizing: 'border-box',
@@ -61,17 +76,17 @@ export default function HowItWorks() {
           <div>
             <h2
               style={{
-                font: `600 clamp(34px, 3.4vw, 52px)/1.05 ${font.display}`,
+                font: `600 ${type.h2}/1.05 ${font.display}`,
                 letterSpacing: '-0.02em',
                 margin: '0 0 12px',
               }}
             >
               {howHeading.title}
             </h2>
-            <p style={{ font: `400 19px/1.5 ${font.body}`, color: c.muted, margin: 0 }}>{howHeading.sub}</p>
+            <p style={{ font: `400 ${type.lead}/1.5 ${font.body}`, color: c.muted, margin: 0 }}>{howHeading.sub}</p>
           </div>
 
-          <div style={{ display: 'flex', gap: 8, paddingBottom: 8 }} aria-hidden="true">
+          <div className="vf-how-dots" style={{ display: 'flex', gap: 8, paddingBottom: 8 }} aria-hidden="true">
             {steps.map((s, i) => (
               <div
                 key={s.n}
@@ -97,6 +112,7 @@ export default function HowItWorks() {
               type="button"
               onClick={() => goTo(i)}
               aria-current={i === active ? 'step' : undefined}
+              className="vf-step"
               style={{
                 textAlign: 'left',
                 borderRadius: 14,
@@ -122,7 +138,7 @@ export default function HowItWorks() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     font: `600 15px ${font.display}`,
-                    color: i === active ? c.white : c.orangeDeep,
+                    color: i === active ? c.white : c.orangeDark,
                     boxSizing: 'border-box',
                     transition: 'background 0.4s, color 0.4s',
                     flex: 'none',
@@ -132,7 +148,12 @@ export default function HowItWorks() {
                 </div>
                 <h3 style={{ font: `600 18px ${font.display}`, letterSpacing: '-0.01em', margin: 0 }}>{s.title}</h3>
               </div>
-              <p style={{ font: `400 14px/1.5 ${font.body}`, color: c.muted, margin: 0 }}>{s.body}</p>
+              <p style={{ font: `400 ${type.small}/1.5 ${font.body}`, color: c.muted, margin: 0 }}>{s.body}</p>
+
+              {/* Narrow layout only — the step's own screenshot, full card width. */}
+              <span className="vf-step-shot">
+                <Image src={s.shot} alt={s.alt} width={2794} height={1584} sizes="(max-width: 900px) 92vw, 1px" loading="lazy" />
+              </span>
             </button>
           ))}
         </div>
@@ -141,7 +162,7 @@ export default function HowItWorks() {
             would have auto side margins, which stops it stretching — its width
             collapses to its (absolutely positioned) content, and aspect-ratio
             then resolves the height to zero. */}
-        <div>
+        <div className="vf-how-stage-wrap">
           <div
             style={{
               position: 'relative',
@@ -158,14 +179,15 @@ export default function HowItWorks() {
             {steps.map((s, i) => (
               <div
                 key={s.n}
+                aria-hidden={i !== active}
                 style={{ position: 'absolute', inset: 0, opacity: i === active ? 1 : 0, transition: 'opacity 0.5s' }}
               >
                 <Image
                   src={s.shot}
                   alt={s.alt}
                   fill
-                  sizes="(max-width: 1280px) 100vw, 1280px"
-                  priority={i === 0}
+                  sizes="(max-width: 900px) 1px, (max-width: 1280px) 100vw, 1280px"
+                  loading="lazy"
                   style={{ objectFit: 'cover' }}
                 />
               </div>

@@ -11,9 +11,15 @@ import WhyVideo from '@/components/marketing/WhyVideo';
 export default function HomePage() {
   return (
     <>
+      {/* First stop for a keyboard user; invisible until it takes focus.
+          `main` needs the tabIndex or the jump moves the viewport without
+          moving focus, and the next Tab goes back into the nav. */}
+      <a href="#main" className="vf-skip">
+        Skip to content
+      </a>
       <CursorRing />
       <Nav />
-      <main>
+      <main id="main" tabIndex={-1} style={{ outline: 'none' }}>
         <Hero />
         <HowItWorks />
         <WhyVideo />

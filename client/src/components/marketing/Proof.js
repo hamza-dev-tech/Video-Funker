@@ -2,16 +2,20 @@ import Image from 'next/image';
 
 import Reveal from '@/components/marketing/Reveal';
 import { proofHeading, proofs, wall } from '@/config/content';
-import { c, font } from '@/config/site';
+import { c, font, space, type } from '@/config/site';
 
 export default function Proof() {
   return (
-    <section id="proof" className="vf-pad" style={{ background: c.blue, color: '#fff', padding: '140px 48px', overflow: 'hidden' }}>
+    <section
+      id="proof"
+      className="vf-pad"
+      style={{ background: c.blue, color: '#fff', padding: `${space.section}px 48px`, overflow: 'hidden' }}
+    >
       <div style={{ maxWidth: 1280, margin: '0 auto' }}>
         <Reveal
           as="h2"
           style={{
-            font: `600 clamp(40px, 4.2vw, 64px)/1.05 ${font.display}`,
+            font: `600 ${type.h2}/1.05 ${font.display}`,
             letterSpacing: '-0.02em',
             margin: '0 0 64px',
             maxWidth: 700,
@@ -38,7 +42,7 @@ export default function Proof() {
             >
               <div
                 style={{
-                  font: `600 clamp(40px, 3.6vw, 52px) ${font.display}`,
+                  font: `600 ${type.stat} ${font.display}`,
                   letterSpacing: '-0.02em',
                   color: c.yellow,
                   marginBottom: 12,
@@ -47,7 +51,7 @@ export default function Proof() {
                 {p.big}
               </div>
               <div style={{ font: `600 18px ${font.body}`, marginBottom: 8 }}>{p.title}</div>
-              <div style={{ font: `400 15px/1.6 ${font.body}`, color: c.blueWash }}>{p.body}</div>
+              <div style={{ font: `400 ${type.body}/1.6 ${font.body}`, color: c.blueWash }}>{p.body}</div>
             </Reveal>
           ))}
         </div>
