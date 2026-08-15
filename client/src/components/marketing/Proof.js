@@ -1,8 +1,20 @@
-import Image from 'next/image';
-
+import ProofArt from '@/components/marketing/ProofArt';
 import Reveal from '@/components/marketing/Reveal';
 import { proofHeading, proofs, wall } from '@/config/content';
 import { c, font, space, type } from '@/config/site';
+
+/**
+ * Legacy shim. The wall used to be four PNGs and each item was identified by
+ * its `src`; the artefacts are markup now and are picked by `kind`. This map
+ * keeps the section rendering until content.js drops `src` and `alt` for
+ * `kind`, and can be deleted the moment it does.
+ */
+const KIND_BY_SRC = {
+  '/art/wall-video-still.png': 'post',
+  '/art/wall-dm.png': 'reply',
+  '/art/wall-analytics.png': 'numbers',
+  '/art/wall-calendar.png': 'calendar',
+};
 
 export default function Proof() {
   return (
@@ -21,7 +33,8 @@ export default function Proof() {
             maxWidth: 700,
           }}
         >
-          {proofHeading}
+          {proofHeading.title}
+          <span className="vf-h2-lead">{proofHeading.lead}</span>
         </Reveal>
 
         <div
@@ -56,23 +69,30 @@ export default function Proof() {
           ))}
         </div>
 
-        {/* The receipts: post → reply → numbers → calendar, in that order. */}
-        <div className="vf-wall-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
+        {/* The receipts: post → reply → numbers → calendar, in that order.
+
+            These four were PNG exports until the copy inside them was found to
+            be pixels: brand names, message text and view counts drawn at
+            1788px wide and shown at roughly 300, next to a live 13px caption.
+            They are markup now, so every word is real text at the real font and
+            the four unverifiable counts they asserted are gone. See ProofArt. */}
+        <div
+          className="vf-wall-grid"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, alignItems: 'stretch' }}
+        >
           {wall.map((w, i) => (
             <Reveal key={w.caption} variant="up" delay={i * 90}>
-              <figure className="vf-tilt vf-wall" style={{ '--tilt': w.tilt, margin: 0 }}>
-                {/* Same as the feed strip: the art rounds its own corners, so
-                    the shadow rides the alpha rather than a box. */}
-                <div style={{ lineHeight: 0, filter: 'drop-shadow(0 18px 40px rgba(4,41,82,0.34))' }}>
-                  <Image
-                    src={w.src}
-                    alt={w.alt}
-                    width={894}
-                    height={574}
-                    sizes="(max-width: 1080px) 45vw, 300px"
-                    style={{ display: 'block', width: '100%', height: 'auto' }}
-                  />
-                </div>
+              <figure
+                className="vf-tilt vf-wall"
+                style={{
+                  '--tilt': w.tilt,
+                  margin: 0,
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                <ProofArt kind={w.kind || KIND_BY_SRC[w.src]} />
                 <figcaption
                   style={{
                     font: `500 13px ${font.body}`,

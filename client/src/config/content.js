@@ -5,7 +5,16 @@ import { c } from './site';
 export const hero = {
   lines: ['AI killed the', 'written post.'],
   accent: 'Video wins.',
-  sub: 'AI writes the script. A lifelike presenter delivers it on camera. You post it and book meetings — no crew, no studio, no filming day.',
+  /**
+   * Leads with the category, then the mechanism.
+   *
+   * The h1 above it is the brand's best line and the whole word-by-word hover
+   * treatment is built on it, so it keeps its metaphor. That leaves this
+   * paragraph as the first place on the page where a reader (or a crawler)
+   * learns what is actually being sold, which is why "done-for-you LinkedIn
+   * video for B2B founders" sits at the front of it rather than the mechanism.
+   */
+  sub: 'Done-for-you LinkedIn video for B2B founders. AI writes the script, a lifelike presenter delivers it on camera, and you post it and book meetings. No crew, no studio, no filming day.',
   primary: 'Start free',
   secondary: 'See how it works',
   /** Answers the three objections that stop people clicking, in three words each. */
@@ -23,14 +32,19 @@ export const hero = {
     author: 'Your post',
     meta: 'Founder · 2h · Public',
     caption: 'The pricing mistake that quietly kills agency margins.',
-    /* Profile photo and presenter are the same person on purpose — it is your
-       account and your face in your own video. */
-    avatar: '/art/avatar-founder.png',
-    still: '/art/hero-thumb-pricing.jpg',
+    /* Profile photo and presenter are the same person on purpose. It is your
+       account and your face in your own video, and a mismatch there quietly
+       undoes the claim the hero is making.
+       Both now come from the same source frame: avatar-founder.png is a crop
+       of thumb-founder.jpg. The previous still (hero-thumb-pricing.jpg) was a
+       different man once the avatar was regenerated, and it carried a burnt-in
+       title card in a font the site does not use. */
+    avatar: '/art/avatar-founder.jpg',
+    still: '/art/thumb-founder.jpg',
     /* The thumbnail's own 16:9. Do not force these title cards into a taller
        slot: object-fit then crops the first letter off the headline. */
     stillRatio: '16 / 9',
-    stillAlt: 'A finished video titled "Pricing Strategy — Enterprise Solutions Deep Dive", presented to camera',
+    stillAlt: 'A founder talking straight to camera in a finished video about pricing',
     duration: '0:42',
     comments: '32 comments',
   },
@@ -43,8 +57,26 @@ export const hero = {
 
 /* ── HOW IT WORKS ──────────────────────────────────────────────────── */
 
+/**
+ * Section headings carry two lines, and the second one is not decoration.
+ *
+ * `title` is the line the design was built around. `lead` is the same idea said
+ * the way a buyer would type it, rendered smaller inside the SAME h2 element.
+ *
+ * The reason is that every heading on this page used to be a metaphor. "One
+ * call. Then it runs itself.", "AI made every feed sound the same.", "Proof,
+ * not promises." Not one of the sixteen headings on the site contained "B2B
+ * video", "LinkedIn video", "founder-led video" or "video content agency" as a
+ * phrase anybody searches for. Headings are one of the few strong on-page
+ * relevance signals left and the part a grounding snippet reliably quotes, so
+ * the page was spending all of them on wordplay.
+ *
+ * Putting the plain line inside the h2 rather than in a paragraph underneath is
+ * the whole point. A sibling paragraph is body copy; this is the heading.
+ */
 export const howHeading = {
   title: 'One call. Then it runs itself.',
+  lead: 'How done-for-you LinkedIn video works',
   sub: 'Tell us your story once. Everything after that is handled.',
 };
 
@@ -59,7 +91,7 @@ export const steps = [
   {
     n: '2',
     title: 'Turn it into sharp scripts',
-    body: 'We write short posts and video scripts that sound specific, useful and credible — instead of generic AI filler.',
+    body: 'We write short posts and video scripts that sound specific, useful and credible, instead of generic AI filler.',
     shot: '/shots/step-2-content.png',
     alt: 'Video Funker content engine with research, article, video script, captions, LinkedIn posts and outbound tabs',
   },
@@ -67,7 +99,7 @@ export const steps = [
     n: '3',
     title: 'Produce premium video',
     body: 'Your ideas become polished presenter videos, edited for LinkedIn and ready to publish without a filming day.',
-    shot: '/shots/step-3-film.png',
+    shot: '/shots/step-3-film.jpg',
     alt: 'Video Funker film studio playing a finished AI-presenter video',
   },
   {
@@ -83,49 +115,77 @@ export const steps = [
 
 export const whyVideo = {
   title: 'AI made every feed sound the same.',
+  lead: 'Why founder-led video works for B2B buyers',
   sub: 'Video is the exception. Buyers check your profile before they take the meeting, and a face is the one thing they still trust.',
 };
 
 /**
  * The scrolling feed strip, alternating two kinds of post.
  *
- * `card` items are finished artwork — a real post with a face and media.
- * `text` items are built in markup: a wall of generic copy that fades out
- * with nothing to look at. The alternation is the section's whole argument,
- * so the two must always stay interleaved.
+ * `video` items are the ones with a face and something to watch. `text` items
+ * are a wall of generic copy that fades out with nothing to look at. The
+ * alternation is the section's whole argument, so the two must always stay
+ * interleaved.
  *
- * Two rules hold this together, and both are easy to break by accident:
+ * BOTH kinds are built in markup. They used to differ: the video posts were
+ * flat PNG exports of a finished card, roughly 600KB each, drawn at 640px wide
+ * and displayed at 336. Every word inside them was a bitmap, resampled to 52%,
+ * sitting beside live text rendered at 14px by the font engine. The two could
+ * never match, so the strip read as though half the cards used a different
+ * typeface. Rebuilding them as real markup fixed the typography, cut 2.8MB of
+ * images, and turned the captions into text that can be read, selected,
+ * translated and indexed.
  *
- * 1. The strip loops, so this list is a ring — the last item sits next to the
+ * Three rules hold this together, and all three are easy to break by accident:
+ *
+ * 1. The strip loops, so this list is a ring. The last item sits next to the
  *    first one. Keep the length EVEN and end on a `text` item, or the join
- *    puts two pieces of artwork side by side and the alternation reads as
- *    broken exactly once per pass.
- * 2. Each `body` has to be long enough to overflow the card. The wall is
- *    ~300px tall and truncates with a fade; copy that stops short leaves a
+ *    puts two video cards side by side and the alternation reads as broken
+ *    exactly once per pass.
+ * 2. Each `text` body has to be long enough to overflow the card. The wall is
+ *    ~260px tall and truncates with a fade; copy that stops short leaves a
  *    hole where a real post would still be talking.
+ * 3. `text` bodies are DELIBERATELY written to sound machine-generated. The
+ *    stock phrases in them are the joke. Do not clean them up.
  */
 export const feed = [
   {
-    kind: 'card',
-    src: '/art/post-yours.png',
-    alt: 'Your post, Founder, 2 days ago: "Context is everything in B2B. Before buyers reply, they check whether you are real." 41,300 views and 215 comments.',
+    kind: 'video',
+    who: 'Your post',
+    meta: 'Founder · 2d',
+    avatar: '/art/avatar-founder.jpg',
+    body: 'We priced by the hour for four years and kept wondering where the margin went. Moving to scope pricing took a week.',
+    thumb: '/art/thumb-founder.jpg',
+    thumbAlt: 'A founder talking to camera about pricing',
+    duration: '0:42',
+    stat: '41,300 views',
+    stat2: '215 comments',
     tilt: '1.5deg',
   },
   {
     kind: 'text',
     who: 'Daniel Whitfield',
     meta: 'Head of Revenue Operations · 3h',
-    avatar: '/art/avatar-1.png',
+    /* avatar-3, not avatar-1: avatar-1 and avatar-founder are the same face,
+       so this card and the "Your post" card were showing one person twice. */
+    avatar: '/art/avatar-3.png',
     body:
-      'Five lessons on scaling revenue that I keep coming back to. In today’s rapidly evolving landscape, cross-functional alignment is what separates the organisations that compound from the ones that quietly stall. Lesson one: alignment is a habit, not a meeting. Lesson two: your process is only ever as strong as the conversations happening behind it. Lesson three: data without context is just noise with a dashboard attached. Lesson four: the strongest teams over-communicate the obvious. Lesson five: consistency beats intensity, every single quarter, without exception. None of this is revolutionary, and that is rather the point — the fundamentals are unglamorous, repeatable, and almost always the first thing to get skipped the moment targets tighten. Save this one for later.',
+      'Five lessons on scaling revenue that I keep coming back to. In today’s rapidly evolving landscape, cross-functional alignment is what separates the organisations that compound from the ones that quietly stall. Lesson one: alignment is a habit, not a meeting. Lesson two: your process is only ever as strong as the conversations happening behind it. Lesson three: data without context is just noise with a dashboard attached. Lesson four: the strongest teams over-communicate the obvious. Lesson five: consistency beats intensity, every single quarter, without exception. None of this is revolutionary, and that is rather the point. The fundamentals are unglamorous, repeatable, and the first thing to get skipped the moment targets tighten. Save this one for later.',
     stat: '2 likes',
     stat2: '0 comments',
     tilt: '-1deg',
   },
   {
-    kind: 'card',
-    src: '/art/post-studio.png',
-    alt: 'A post from Elena Rostova, Enterprise Account Executive, on video-led buyer enablement, showing a video studio with camera and teleprompter. 18,500 views and 94 comments.',
+    kind: 'video',
+    who: 'Elena Rostova',
+    meta: 'Enterprise Account Executive · 1d',
+    avatar: '/art/avatar-elena.jpg',
+    body: 'Six buyers mentioned my videos on first calls last quarter. Not one of them mentioned the deck I spent a month on.',
+    thumb: '/art/thumb-elena.jpg',
+    thumbAlt: 'An account executive talking to camera about how buyers research before a first call',
+    duration: '1:04',
+    stat: '18,500 views',
+    stat2: '94 comments',
     tilt: '-1deg',
   },
   {
@@ -134,32 +194,49 @@ export const feed = [
     meta: 'VP, Corporate Strategy · 5h',
     avatar: '/art/avatar-2.png',
     body:
-      'Reflecting on a strong quarter with an exceptional team. Trust really is the new currency, and culture will always eat strategy for breakfast. Grateful to everyone who continues to believe in the mission we are building together. What I keep learning is that momentum is never the result of one big decision; it is the compound interest of a hundred small ones, made consistently, in roughly the right direction, by people who genuinely care about the outcome. We did not arrive here by chasing every trend that crossed the feed. We got here by staying close to our customers, listening rather more than we talked, and being honest about the things that were not working. That last part is harder than it sounds. Vulnerability at the leadership level is not weakness; it is permission for everybody else to tell the truth.',
+      'Reflecting on a strong quarter with an exceptional team. Trust really is the new currency, and culture will always eat strategy for breakfast. Grateful to everyone who continues to believe in the mission we are building together. What I keep learning is that momentum is never the result of one big decision; it is the compound interest of a hundred small ones, made consistently, in roughly the right direction, by people who genuinely care about the outcome. We did not arrive here by chasing every trend that crossed the feed. We got here by staying close to our customers and being honest about what was not working. Vulnerability at the leadership level is not weakness. It is permission for everybody else to tell the truth.',
     stat: '1 like',
     stat2: '0 comments',
     tilt: '1deg',
   },
   {
-    kind: 'card',
-    src: '/art/post-aisha.png',
-    alt: 'A post from Aisha Khan, Director of Revenue Operations, on data hygiene and predictable GTM growth, showing a revenue dashboard. 31,500 views and 94 comments.',
+    kind: 'video',
+    who: 'Aisha Khan',
+    meta: 'Director of Revenue Operations · 5h',
+    avatar: '/art/avatar-aisha.jpg',
+    body: 'Our CRM data was clean and pipeline still missed by thirty percent. The problem started three steps upstream of the CRM.',
+    thumb: '/art/thumb-aisha.jpg',
+    thumbAlt: 'A revenue operations lead talking to camera about where pipeline forecasts break down',
+    duration: '0:38',
+    stat: '31,500 views',
+    stat2: '140 comments',
     tilt: '1deg',
   },
   {
+    /* No avatar. avatar-3 now belongs to the Aisha video card, and the same
+       face appearing on both a video post and a written one in the same strip
+       reads as a mistake. The silhouette is also what LinkedIn actually shows
+       for the accounts that post like this. */
     kind: 'text',
     who: 'Andre Bakker',
     meta: 'Director of Demand Generation · 1d',
-    avatar: '/art/avatar-3.png',
     body:
-      'Seven ways to unlock predictable pipeline (number three genuinely surprised me). Growth is a mindset long before it is ever a motion, and consistency compounds in ways most teams routinely underestimate. One: know your ideal customer better than they know themselves. Two: stop measuring activity and start measuring progression. Three: your best channel is almost always the one you have not fully committed to yet. Four: qualify out faster than feels comfortable. Five: every handoff is a leak until proven otherwise. Six: pipeline coverage is a symptom, not a strategy. Seven: the market rewards clarity, never volume. I could write a full post on each of these, and in time I probably will. For now I am most curious which one you would push back on, because the third has caused more internal debate than anything else we shipped this year. Interested to hear your thoughts.',
+      'Seven ways to unlock predictable pipeline (number three genuinely surprised me). Growth is a mindset long before it is ever a motion, and consistency compounds in ways most teams routinely underestimate. One: know your ideal customer better than they know themselves. Two: stop measuring activity and start measuring progression. Three: your best channel is almost always the one you have not fully committed to yet. Four: qualify out faster than feels comfortable. Five: every handoff is a leak until proven otherwise. Six: pipeline coverage is a symptom, not a strategy. Seven: the market rewards clarity, never volume. I could write a full post on each of these, and in time I probably will. Interested to hear your thoughts.',
     stat: '4 likes',
     stat2: '1 comment',
     tilt: '0.5deg',
   },
   {
-    kind: 'card',
-    src: '/art/post-elena.png',
-    alt: 'A post from Elena Rostova, VP of Growth, on video-led buyer enablement, showing a pipeline and ARR dashboard. 18,500 views and 94 comments.',
+    kind: 'video',
+    who: 'Marcus Delaney',
+    meta: 'Head of Sales · 3h',
+    avatar: '/art/avatar-marcus.jpg',
+    body: 'We sent half the outreach we sent last year and booked twice the meetings. The only thing that changed was showing my face first.',
+    thumb: '/art/thumb-marcus.jpg',
+    thumbAlt: 'A head of sales talking to camera about cutting outreach volume and booking more meetings',
+    duration: '0:51',
+    stat: '12,800 views',
+    stat2: '61 comments',
     tilt: '-1.5deg',
   },
   {
@@ -169,7 +246,7 @@ export const feed = [
     who: 'Priya Raghunathan',
     meta: 'Global Head of Partnerships · 2d',
     body:
-      'Had a fascinating conversation this week that completely reframed how I think about go-to-market. We talk endlessly about scale, but scale without a system underneath it is simply noise at a higher volume. The organisations pulling ahead right now are not the ones with the biggest teams or the largest budgets — they are the ones with the shortest distance between an insight and an action. That distance is a design choice. It shows up in how you run forecast calls, how you write enablement docs, and how quickly a signal from the front line reaches somebody empowered to act on it. Most companies optimise the parts and quietly neglect the seams. Three things I would challenge every leader to audit this quarter: where information goes to die, which meeting could have been a document, and what you would stop doing tomorrow if the number was already hit.',
+      'Had a fascinating conversation this week that completely reframed how I think about go-to-market. We talk endlessly about scale, but scale without a system underneath it is simply noise at a higher volume. The organisations pulling ahead right now are not the ones with the biggest teams or the largest budgets. They are the ones with the shortest distance between an insight and an action. That distance is a design choice. It shows up in how you run forecast calls, how you write enablement docs, and how quickly a signal from the front line reaches somebody who is empowered to act on it. Most companies optimise the parts and quietly neglect the seams.',
     stat: '3 likes',
     stat2: '0 comments',
     tilt: '-0.5deg',
@@ -180,22 +257,29 @@ export const feed = [
 
 export const deliverablesHeading = {
   title: 'Everything you need to show up.',
+  lead: 'What a month of B2B video content includes',
   sub: 'A month of feed-ready content, every month. In your voice, and nothing left to edit.',
 };
 
 /**
- * Titles and bodies stay as real text — this is the copy buyers read and
- * search engines index. Each card carries a piece of the brand artwork as an
- * accent so the section has weight without turning content into a picture.
+ * Titles and bodies are real text, because this is the copy buyers read and
+ * search engines index.
+ *
+ * `art` names a visual in components/marketing/DeliverableArt.js. It used to be
+ * a path to a PNG, and each of those PNGs had a paraphrase of the body copy
+ * baked into it as pixels, so every card stated its point twice in two
+ * different typefaces. The replacements show an artefact instead: the button on
+ * a finished clip, the hook line of a draft, the shape of a carousel. If you
+ * add a card, write the body here and the visual there, and make sure the two
+ * are not saying the same sentence.
  */
 export const deliverables = [
   {
     glyph: '▶',
     chip: c.orange,
     title: 'Finished videos',
-    body: 'Short founder-led videos with scripts, presenter delivery, captions and feed-ready formatting.',
-    art: '/art/accent-videos.png',
-    artAlt: 'A finished clip marked ready for LinkedIn',
+    body: 'Short videos of you, scripted, filmed and captioned, sized for the feed and ready to post.',
+    art: 'videos',
     span: '1',
     delay: '0s',
   },
@@ -203,9 +287,8 @@ export const deliverables = [
     glyph: 'Aa',
     chip: c.yellow,
     title: 'LinkedIn posts',
-    body: 'Text posts matched to each video, written in a clear founder voice with strong hooks and practical insight.',
-    art: '/art/accent-posts.png',
-    artAlt: 'A drafted post hook reading "Most agencies price the wrong thing"',
+    body: 'A written post for every video, in your voice, opening on a line people stop scrolling for.',
+    art: 'posts',
     span: '1',
     delay: '0.9s',
   },
@@ -213,9 +296,8 @@ export const deliverables = [
     glyph: '☰',
     chip: c.violet,
     title: 'Carousel creative',
-    body: 'Clean visual posts that turn one idea into a simple, swipeable argument buyers understand fast.',
-    art: '/art/accent-carousels.png',
-    artAlt: 'Three carousel slides in the brand palette',
+    body: 'One idea, three slides, built so a buyer gets the whole argument on a phone in ten seconds.',
+    art: 'carousels',
     span: '1',
     delay: '1.8s',
   },
@@ -223,9 +305,8 @@ export const deliverables = [
     glyph: '✎',
     chip: c.yellow,
     title: 'Long-form articles',
-    body: 'Deeper articles that give serious prospects something useful to read after they notice your videos.',
-    art: '/art/accent-articles.png',
-    artAlt: 'A long-form article laid out in paragraphs',
+    body: 'The longer piece a serious buyer reads after your video makes them curious enough to look.',
+    art: 'articles',
     span: '1',
     delay: '2.7s',
   },
@@ -233,9 +314,8 @@ export const deliverables = [
     glyph: '↗',
     chip: c.orange,
     title: 'Outreach support',
-    body: 'LinkedIn message angles that connect naturally to your content, so cold outreach feels warmer and far more relevant. Prospects recognise your ideas before you ever say hello.',
-    art: '/art/accent-outreach.png',
-    artAlt: 'A prospect reply reading "Saw your pricing video — worth sending the teardown?"',
+    body: 'Message angles tied to what you just published, so the person you contact has already seen your face and knows the argument before you say hello.',
+    art: 'outreach',
     span: '2',
     delay: '3.6s',
   },
@@ -275,7 +355,10 @@ export const compareRows = [
 
 /* ── PROOF ─────────────────────────────────────────────────────────── */
 
-export const proofHeading = 'Proof, not promises.';
+export const proofHeading = {
+  title: 'Proof, not promises.',
+  lead: 'Results from founder-led video campaigns',
+};
 
 export const proofs = [
   {

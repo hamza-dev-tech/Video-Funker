@@ -28,11 +28,24 @@ export const appLinks = {
   dashboard: '/app',
 };
 
+/**
+ * Primary navigation.
+ *
+ * Note the mix: the first four are same-page anchors, `/blog` is a real path.
+ * Nav and Footer rebase ONLY the anchors when they render off the homepage
+ * (`#how` becomes `/#how`), because prefixing a real path would produce
+ * `//blog` — which a browser reads as a protocol-relative URL pointing at a
+ * host called "blog", not as a page on this site.
+ *
+ * Blog is last on purpose. It is the only entry that leaves the sales page, and
+ * putting it earlier gives a visitor an exit before they have read the offer.
+ */
 export const nav = [
   { label: 'How it works', href: '#how' },
   { label: 'Why video', href: '#why-video' },
   { label: 'What you get', href: '#deliverables' },
   { label: 'Proof', href: '#proof' },
+  { label: 'Blog', href: '/blog' },
 ];
 
 /** The footer leads with the argument rather than the mechanics. */

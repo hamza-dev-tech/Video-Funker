@@ -82,6 +82,7 @@ export default function HowItWorks() {
               }}
             >
               {howHeading.title}
+              <span className="vf-h2-lead">{howHeading.lead}</span>
             </h2>
             <p style={{ font: `400 ${type.lead}/1.5 ${font.body}`, color: c.muted, margin: 0 }}>{howHeading.sub}</p>
           </div>

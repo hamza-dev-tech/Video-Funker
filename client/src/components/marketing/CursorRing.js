@@ -27,17 +27,38 @@ export default function CursorRing() {
   useEffect(() => {
     const el = ring.current;
     if (!el) return undefined;
+    /* A coarse pointer has no cursor to decorate. globals.css also hides the
+       element outright at (pointer: coarse), so on a phone this component now
+       paints nothing and runs nothing: no listener, no loop. */
     if (window.matchMedia('(pointer: coarse)').matches) return undefined;
 
     const cur = { x: -100, y: -100, tx: -100, ty: -100, s: 1, ts: 1, seen: false };
+    let hot = false; // pointer is over a link or a button
+    let painted = false; // border colour currently on the element
+    let lastTarget = null;
+    let shown = false;
+    let lx = NaN;
+    let ly = NaN;
+    let ls = NaN;
 
+    /* The handler only records the pointer now.
+
+       It used to write el.style.borderColor on every single mousemove, which
+       put a style write on the input path immediately in front of the
+       getBoundingClientRect() calls other components were making on the same
+       event: read, write, read, write, which is how a cursor effect ends up
+       forcing layout on every mouse sample. It also ran closest() up the
+       ancestor chain for every event, including the long runs of events that
+       never leave the element the pointer is already sitting on. */
     const onMove = (e) => {
       cur.tx = e.clientX;
       cur.ty = e.clientY;
       cur.seen = true;
-      const hot = !!(e.target.closest && e.target.closest('a, button'));
+      if (e.target !== lastTarget) {
+        lastTarget = e.target;
+        hot = !!(e.target.closest && e.target.closest('a, button'));
+      }
       cur.ts = hot ? HOT / REST : 1;
-      el.style.borderColor = hot ? c.orange : c.blue;
     };
     window.addEventListener('mousemove', onMove, { passive: true });
 
@@ -48,8 +69,26 @@ export default function CursorRing() {
       cur.x += (cur.tx - cur.x) * 0.22;
       cur.y += (cur.ty - cur.y) * 0.22;
       cur.s += (cur.ts - cur.s) * 0.18;
-      el.style.transform = `translate3d(${cur.x.toFixed(1)}px, ${cur.y.toFixed(1)}px, 0) scale(${cur.s.toFixed(3)})`;
-      el.style.opacity = '1';
+
+      /* Every write below is skipped when the value has not moved. The lerps
+         converge to their targets exactly, so a moment after the pointer stops
+         the loop was formatting three numbers and rebuilding the same string
+         60 times a second to assign what the element already had. Opacity was
+         being reassigned to '1' on every frame for the life of the page. */
+      if (cur.x !== lx || cur.y !== ly || cur.s !== ls) {
+        lx = cur.x;
+        ly = cur.y;
+        ls = cur.s;
+        el.style.transform = `translate3d(${cur.x.toFixed(1)}px, ${cur.y.toFixed(1)}px, 0) scale(${cur.s.toFixed(3)})`;
+      }
+      if (hot !== painted) {
+        painted = hot;
+        el.style.borderColor = hot ? c.orange : c.blue;
+      }
+      if (!shown) {
+        shown = true;
+        el.style.opacity = '1';
+      }
     });
 
     return () => {

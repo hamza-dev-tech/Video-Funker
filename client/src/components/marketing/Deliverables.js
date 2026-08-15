@@ -1,11 +1,19 @@
-import Image from 'next/image';
-
+import DeliverableArt from '@/components/marketing/DeliverableArt';
 import Icon, { COMPARE_LABELS } from '@/components/marketing/icons';
 import Reveal from '@/components/marketing/Reveal';
 import { compareHeading, compareRows, deliverables, deliverablesHeading } from '@/config/content';
 import { c, font, space, type } from '@/config/site';
 
-const GRID = '1.5fr repeat(3, 1fr) 1fr';
+/**
+ * Column widths.
+ *
+ * The last track is the widest of the value columns on purpose. It used to be
+ * `1fr`, identical to the three it is being compared against, and measured out
+ * at 166px against their 170.9px: the column the whole table exists to
+ * highlight was rendering NARROWER than its competitors. The label column is
+ * widest because its content is words rather than a single glyph.
+ */
+const GRID = '1.6fr repeat(3, 1fr) 1.3fr';
 
 export default function Deliverables() {
   return (
@@ -30,6 +38,7 @@ export default function Deliverables() {
           }}
         >
           {deliverablesHeading.title}
+          <span className="vf-h2-lead">{deliverablesHeading.lead}</span>
         </Reveal>
         <Reveal
           as="p"
@@ -90,18 +99,11 @@ export default function Deliverables() {
                   <p style={{ font: `400 15px/1.6 ${font.body}`, color: c.muted, margin: 0 }}>{d.body}</p>
                 </div>
 
-                {/* Capped, never stretched. Left to scale with the card the
-                    two-column card's accent would render twice the height of
+                {/* Capped, never stretched. Left to scale with the card, the
+                    two-column card's visual would render twice the height of
                     its neighbours' and drag the whole grid row down with it. */}
                 <div className="vf-accent">
-                  <Image
-                    src={d.art}
-                    alt={d.artAlt}
-                    width={528}
-                    height={120}
-                    sizes="380px"
-                    style={{ display: 'block', width: '100%', height: 'auto' }}
-                  />
+                  <DeliverableArt kind={d.art} />
                 </div>
               </div>
             </Reveal>
@@ -145,7 +147,12 @@ export default function Deliverables() {
               border: `1px solid ${c.line}`,
               borderRadius: 18,
               overflow: 'hidden',
-              maxWidth: 940,
+              /* No maxWidth. It was capped at 940px inside a 1280px container,
+                 sitting directly under a card grid that spans the full 1280.
+                 That stranded 353px of empty space to its right and made the
+                 section look like two different layouts stacked on top of each
+                 other. A comparison table is the moment a reader decides; it
+                 should not look like an afterthought pinned to the left. */
               background: c.white,
               boxShadow: '0 18px 48px #0429520f',
             }}
@@ -160,13 +167,13 @@ export default function Deliverables() {
                   borderBottom: `1px solid ${c.line}`,
                 }}
               >
-                <div style={{ padding: '18px 26px' }} />
+                <div style={{ padding: '22px 28px' }} />
                 {compareHeading.columns.map((col) => (
                   <div
                     key={col}
                     style={{
-                      padding: '18px 12px',
-                      font: `500 14px ${font.body}`,
+                      padding: '22px 14px',
+                      font: `500 15px ${font.body}`,
                       textAlign: 'center',
                       color: c.muted,
                       whiteSpace: 'nowrap',
@@ -177,8 +184,8 @@ export default function Deliverables() {
                 ))}
                 <div
                   style={{
-                    padding: '18px 12px',
-                    font: `700 15px ${font.body}`,
+                    padding: '22px 14px',
+                    font: `700 16px ${font.body}`,
                     textAlign: 'center',
                     color: c.orangeInk,
                     background: c.orange,
@@ -199,7 +206,7 @@ export default function Deliverables() {
                     borderBottom: `1px solid ${row.divider}`,
                   }}
                 >
-                  <div style={{ padding: '15px 26px', font: `500 15px ${font.body}`, whiteSpace: 'nowrap' }}>
+                  <div style={{ padding: '20px 28px', font: `500 16px ${font.body}`, whiteSpace: 'nowrap' }}>
                     {row.label}
                   </div>
                   {[
@@ -209,14 +216,14 @@ export default function Deliverables() {
                   ].map(([v, col], i) => (
                     <div
                       key={i}
-                      style={{ padding: '15px 12px', display: 'grid', placeItems: 'center', color: col }}
+                      style={{ padding: '20px 14px', display: 'grid', placeItems: 'center', color: col }}
                     >
-                      <Icon name={v} size={20} label={`${COMPARE_LABELS[v]} — ${row.label}, ${compareHeading.columns[i]}`} />
+                      <Icon name={v} size={23} label={`${COMPARE_LABELS[v]}, ${row.label}, ${compareHeading.columns[i]}`} />
                     </div>
                   ))}
                   <div
                     style={{
-                      padding: '15px 12px',
+                      padding: '20px 14px',
                       display: 'grid',
                       placeItems: 'center',
                       color: c.orangeDark,
@@ -225,9 +232,9 @@ export default function Deliverables() {
                   >
                     <Icon
                       name={row.c4}
-                      size={20}
-                      strokeWidth={2.4}
-                      label={`${COMPARE_LABELS[row.c4]} — ${row.label}, Video Funker`}
+                      size={24}
+                      strokeWidth={2.6}
+                      label={`${COMPARE_LABELS[row.c4]}, ${row.label}, Video Funker`}
                     />
                   </div>
                 </div>

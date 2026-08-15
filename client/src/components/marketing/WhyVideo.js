@@ -4,22 +4,22 @@ import Reveal from '@/components/marketing/Reveal';
 import { feed, whyVideo } from '@/config/content';
 import { c, font, type } from '@/config/site';
 
-/* Wide enough that one full loop outruns the viewport — any narrower and the
+/* Wide enough that one full loop outruns the viewport. Any narrower and the
    same card turns up twice on screen at once. */
 const CARD_W = 336;
 const CARD_GAP = 22;
-const ART_W = 640;
-const ART_H = 726;
-/* Every card in the strip is pinned to this height — artwork included. The
-   four post images were exported at slightly different heights (723–731px),
-   so letting them size themselves left the row up to 5px ragged along the
-   bottom. Cropping each one to a shared box costs a pixel or two off the
-   edge and nothing that reads. */
-const CARD_H = Math.round((CARD_W * ART_H) / ART_W);
+/* Every card in the strip is pinned to this height. Both kinds are markup now,
+   so the number is a layout decision rather than a property of whatever height
+   somebody happened to export a PNG at. It fits a header, a caption, a 640:281
+   thumbnail and a stats row at 336px wide with 16px of padding. */
+const CARD_H = 381;
 /* The strip's pace, stated as speed rather than duration. Expressing it this
    way means neither adding a card nor resizing one changes how fast the feed
-   actually moves — the duration is derived from both below. */
-const PIXELS_PER_SECOND = 72;
+   actually moves; the duration is derived from both below. */
+/* Fast enough that the strip reads as alive rather than as a static row of
+   cards. It can afford this pace because hovering the strip pauses it, so
+   nobody has to chase a card to finish reading it. */
+const PIXELS_PER_SECOND = 78;
 
 function Avatar({ src }) {
   return (
@@ -38,32 +38,45 @@ function Avatar({ src }) {
   );
 }
 
-/** A finished post: a real face, real media, real engagement. */
-function ArtCard({ item, hidden }) {
+/* Two tiny glyphs so the engagement row reads as a feed rather than a caption.
+   Inline rather than imported from icons.js: these are 13px decorations beside
+   a number that already says everything, so they are aria-hidden and carry no
+   label of their own. */
+function EyeIcon() {
   return (
-    <div
-      className="vf-tilt vf-feedcard vf-postcard"
-      aria-hidden={hidden || undefined}
-      style={{ '--tilt': item.tilt, width: CARD_W, height: CARD_H, marginRight: CARD_GAP }}
-    >
-      <Image
-        src={item.src}
-        alt={hidden ? '' : item.alt}
-        width={ART_W}
-        height={ART_H}
-        sizes={`${CARD_W}px`}
-        loading="eager"
-        style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
-      />
-    </div>
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M1 8s2.5-4.5 7-4.5S15 8 15 8s-2.5 4.5-7 4.5S1 8 1 8Z" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="8" cy="8" r="1.9" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
   );
 }
 
-/** The other half of the argument: words, no face, nothing to watch. */
-function TextCard({ item, hidden }) {
+function CommentIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M14 7.4c0 3-2.7 5.4-6 5.4-.8 0-1.6-.14-2.3-.4L2 13.5l1.2-2.9A5.1 5.1 0 0 1 2 7.4C2 4.4 4.7 2 8 2s6 2.4 6 5.4Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/**
+ * The shared shell.
+ *
+ * Both kinds of post render through this so the header, the byline, the type
+ * scale and the stats row are physically the same markup and the same CSS.
+ * That is the whole point: the previous version drew the video posts as
+ * exported bitmaps, and no amount of care keeps a resampled image of text
+ * looking like text rendered live next to it.
+ */
+function PostShell({ item, hidden, variant, children }) {
   return (
     <article
-      className="vf-tilt vf-feedcard vf-post vf-post-ai"
+      className={`vf-tilt vf-feedcard vf-post ${variant}`}
       aria-hidden={hidden || undefined}
       style={{ '--tilt': item.tilt, width: CARD_W, height: CARD_H, marginRight: CARD_GAP }}
     >
@@ -74,27 +87,98 @@ function TextCard({ item, hidden }) {
           <div className="vf-post-meta">{item.meta}</div>
         </div>
       </header>
+      {children}
+      <footer className="vf-post-stats">
+        <span className="vf-post-stat-hot">
+          {variant === 'vf-post-video' && <EyeIcon />}
+          {item.stat}
+        </span>
+        <span>
+          {variant === 'vf-post-video' && <CommentIcon />}
+          {item.stat2}
+        </span>
+      </footer>
+    </article>
+  );
+}
 
+/** A post with a face and something to watch. */
+function VideoPost({ item, hidden }) {
+  return (
+    <PostShell item={item} hidden={hidden} variant="vf-post-video">
+      {/* Clamped to three lines rather than faded. A real video caption is
+          short and finishes its sentence; the fade belongs to the wall of text
+          on the other card, where being cut off mid-thought is the point. */}
+      <p className="vf-post-body vf-post-caption">{item.body}</p>
+
+      <div className="vf-post-thumb">
+        <Image
+          src={item.thumb}
+          alt={hidden ? '' : item.thumbAlt}
+          fill
+          sizes={`${CARD_W}px`}
+          /**
+           * Eager on the real copy, lazy on the duplicated half.
+           *
+           * Lazy loading assumes an element enters the viewport by scrolling.
+           * These enter by TRANSFORM, sliding in from the right, and a card
+           * that arrives before its thumbnail has been requested shows an
+           * empty grey box for a beat. The strip is the second thing on the
+           * page, so those four images (about 140KB in total) are going to be
+           * needed within a second or two regardless.
+           *
+           * The duplicate half stays lazy and costs nothing either way: it
+           * points at the identical URLs, so it is a cache hit.
+           */
+          loading={hidden ? 'lazy' : 'eager'}
+          /**
+           * Eager, but explicitly LOW priority.
+           *
+           * These sit below the fold, so plain `eager` would have them compete
+           * with the hero for bandwidth and push out the LCP. Plain `lazy`
+           * leaves them unrequested until they have already slid into view,
+           * because the strip moves by transform rather than by scrolling, and
+           * a card arriving before its thumbnail shows an empty grey box.
+           *
+           * fetchPriority="low" resolves the two: the request is queued
+           * immediately but the browser services it after everything that
+           * paints the first screen. The four files total about 150KB.
+           */
+          fetchPriority="low"
+          style={{ objectFit: 'cover' }}
+        />
+        <span className="vf-post-play" aria-hidden="true">
+          <span />
+        </span>
+        <span className="vf-post-dur" aria-hidden="true">
+          {item.duration}
+        </span>
+      </div>
+    </PostShell>
+  );
+}
+
+/** The other half of the argument: words, no face, nothing to watch. */
+function TextPost({ item, hidden }) {
+  return (
+    <PostShell item={item} hidden={hidden} variant="vf-post-ai">
       <div className="vf-post-wall-wrap">
         <div className="vf-post-wall">
           <p className="vf-post-body">{item.body}</p>
         </div>
         <span className="vf-post-more">…see more</span>
       </div>
-
-      <footer className="vf-post-stats">
-        <span className="vf-post-stat-hot">{item.stat}</span>
-        <span>{item.stat2}</span>
-      </footer>
-    </article>
+    </PostShell>
   );
 }
 
 function Post({ item, hidden }) {
-  return item.kind === 'card' ? <ArtCard item={item} hidden={hidden} /> : <TextCard item={item} hidden={hidden} />;
+  return item.kind === 'video' ? <VideoPost item={item} hidden={hidden} /> : <TextPost item={item} hidden={hidden} />;
 }
 
 export default function WhyVideo() {
+  const loopSeconds = ((feed.length * (CARD_W + CARD_GAP)) / PIXELS_PER_SECOND).toFixed(1);
+
   return (
     <section
       id="why-video"
@@ -132,6 +216,7 @@ export default function WhyVideo() {
           }}
         >
           {whyVideo.title}
+          <span className="vf-h2-lead">{whyVideo.lead}</span>
         </Reveal>
         <Reveal
           as="p"
@@ -144,18 +229,16 @@ export default function WhyVideo() {
       </div>
 
       {/* The strip is doubled and slid exactly half its width. Spacing lives on
-          the items, not as a flex gap — a gap adds one fewer space than there
+          the items, not as a flex gap: a gap adds one fewer space than there
           are cards, so the halfway point stops matching and the loop visibly
-          jumps every pass. */}
-      <div style={{ overflow: 'hidden', padding: '20px 0 90px', position: 'relative' }}>
-        <div
-          style={{
-            display: 'flex',
-            width: 'max-content',
-            alignItems: 'flex-start',
-            animation: `marquee ${((feed.length * (CARD_W + CARD_GAP)) / PIXELS_PER_SECOND).toFixed(1)}s linear infinite`,
-          }}
-        >
+          jumps every pass.
+
+          `vf-marquee` carries the animation so it can pause on hover and stop
+          entirely under prefers-reduced-motion. An inline `animation` could do
+          neither, because there is no inline equivalent of :hover or a media
+          query. */}
+      <div className="vf-marquee-mask">
+        <div className="vf-marquee" style={{ animationDuration: `${loopSeconds}s` }}>
           {feed.map((item, i) => (
             <Post key={`a-${i}`} item={item} />
           ))}

@@ -1,6 +1,7 @@
 import { Plus_Jakarta_Sans, Hanken_Grotesk } from 'next/font/google';
 
 import { site, SITE_URL } from '@/config/site';
+import { buildGraph, ldJson, siteGraph } from '@/lib/blog/schema';
 import './globals.css';
 
 const display = Plus_Jakarta_Sans({
@@ -20,32 +21,50 @@ const body = Hanken_Grotesk({
 export const metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${site.name} — AI video content that books meetings`,
+    default: `${site.name}: AI video content that books meetings`,
     template: `%s · ${site.name}`,
   },
   description: site.description,
-  keywords: [
-    'AI video marketing',
-    'AI presenter video',
-    'LinkedIn video content',
-    'B2B demand generation',
-    'AI video generation',
-    'sales content automation',
-  ],
-  alternates: { canonical: '/' },
+  /**
+   * NO `alternates.canonical` here, and no `keywords`.
+   *
+   * The canonical is the important one. Next merges metadata SHALLOWLY, so any
+   * route that does not declare its own `alternates` object inherits this one
+   * verbatim. With `canonical: '/'` sitting on the root layout, every page
+   * added to this site would ship
+   * `<link rel="canonical" href="https://videofunker.ai/">` and tell Google it
+   * is a duplicate of the homepage. A service page, a pricing page, an about
+   * page: all of them would fold into the homepage and drop out of the index,
+   * and nothing about the page would look wrong while it happened. The
+   * homepage declares its own in app/page.js.
+   *
+   * `keywords` was deleted because Google has ignored the meta keywords tag
+   * since 2009 and says so publicly. It cost nothing but it also did nothing,
+   * and leaving it in invites somebody to spend an afternoon tuning it.
+   */
   openGraph: {
     type: 'website',
     url: SITE_URL,
     siteName: site.name,
-    title: `${site.name} — AI video content that books meetings`,
+    title: `${site.name}: AI video content that books meetings`,
     description: site.description,
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${site.name} — AI video content that books meetings`,
+    title: `${site.name}: AI video content that books meetings`,
     description: site.description,
   },
-  robots: { index: true, follow: true },
+  /**
+   * No `robots` here.
+   *
+   * "index, follow" is what a crawler already assumes when no directive is
+   * present, so emitting it site-wide buys nothing — and because metadata is
+   * inherited, it CONFLICTS with the `noindex` Next emits on its own 404 page.
+   * Two robots tags on one page is not fatal (the most restrictive wins), but
+   * shipping a page that tells crawlers both "index this" and "do not index
+   * this" is a defect waiting to be resolved the wrong way by some other
+   * consumer. Routes that need a directive set their own.
+   */
 };
 
 export const viewport = {
@@ -54,16 +73,56 @@ export const viewport = {
   initialScale: 1,
 };
 
-const jsonLd = {
-  '@context': 'https://schema.org',
+/**
+ * The product entity.
+ *
+ * The `@id` and the `publisher` reference are what stop this from colliding
+ * with the Organization node the blog emits. Both nodes legitimately carry
+ * `url: SITE_URL`, and without ids a consumer merging by URL sees one entity
+ * claiming to be both a SoftwareApplication and an Organization — two
+ * competing answers to "what is this". With ids they are what they actually
+ * are: an application, published by a company.
+ *
+ * The Organization itself is described once, in the blog layout, so this
+ * references it rather than repeating it. A reference to a node that no page
+ * in the crawl emits would be a dangling id, which is why the reference is a
+ * bare `@id` and never a half-populated copy.
+ */
+const appNode = {
   '@type': 'SoftwareApplication',
+  '@id': `${SITE_URL}/#app`,
   name: site.name,
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web',
   url: SITE_URL,
   description: site.description,
-  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', description: 'First video free' },
+  publisher: { '@id': `${SITE_URL}/#organization` },
+  /**
+   * No `offers` node.
+   *
+   * It used to claim `price: '0'` with the description "First video free".
+   * That is not what the offer is: this is a paid retainer service whose first
+   * video is a sample. A price of zero in structured data is a machine-readable
+   * assertion that the product costs nothing, and Google's structured data
+   * policy treats markup that contradicts the visible page as spam. It also
+   * risked a "Free" price annotation appearing on the result for a service
+   * that is not free, which converts the wrong people and burns trust on the
+   * first click.
+   *
+   * Put a real Offer back the day /pricing publishes real numbers, and make
+   * the two agree.
+   */
 };
+
+/**
+ * One @graph for the whole site, on every page.
+ *
+ * `siteGraph` carries the Organization and WebSite nodes; this adds the product.
+ * Merging them into a single graph rather than emitting the app on its own is
+ * what makes the `publisher` reference above resolve — an `@id` pointing at a
+ * node no page describes is a dangling reference, and no validator reports it.
+ */
+const jsonLd = buildGraph(...siteGraph['@graph'], appNode);
 
 export default function RootLayout({ children }) {
   return (
@@ -77,8 +136,10 @@ export default function RootLayout({ children }) {
         {children}
         <script
           type="application/ld+json"
-          // eslint-disable-next-line react/no-danger -- static, build-time constant
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          // ldJson, not JSON.stringify: it escapes `</script>` and the two raw
+          // line separators that are legal in JSON and fatal in a script block.
+          // eslint-disable-next-line react/no-danger -- escaped by ldJson
+          dangerouslySetInnerHTML={{ __html: ldJson(jsonLd) }}
         />
       </body>
     </html>

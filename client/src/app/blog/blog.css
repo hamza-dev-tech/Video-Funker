@@ -1,0 +1,1044 @@
+/* ============================================================
+   Blog styles.
+   ------------------------------------------------------------
+   Imported by src/app/blog/layout.js rather than appended to
+   globals.css, so nothing here is downloaded by a visitor who
+   only ever sees the marketing page, and so the marketing CSS
+   stays the one file it was.
+
+   Everything is scoped under .vf-blog. That scope also opts the
+   subtree into border-box: globals.css deliberately does NOT
+   set box-sizing globally (the hero and feed cards are sized in
+   the content-box model and would silently shrink by their
+   padding), but every layout below is written border-box.
+   ============================================================ */
+
+.vf-blog,
+.vf-blog *,
+.vf-blog *::before,
+.vf-blog *::after {
+  box-sizing: border-box;
+}
+
+/* Visually hidden, still announced. Not display:none — that removes it from
+   the accessibility tree too, which defeats the point for a live region. */
+.vf-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.vf-blog {
+  /* Clears the fixed nav, which is 86px tall plus its pill inset. Measured,
+     not guessed. */
+  padding-top: 118px;
+}
+
+.vf-shell {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+.vf-shell-narrow {
+  max-width: 1048px;
+}
+
+/* ── Breadcrumbs ───────────────────────────────────────────── */
+
+.vf-crumb {
+  color: #566d88;
+  font: 500 13px var(--font-body), sans-serif;
+  transition: color 0.2s;
+}
+.vf-crumb:hover {
+  color: #0560be;
+  opacity: 1;
+}
+
+/* ── Blog hero ─────────────────────────────────────────────── */
+
+.vf-blog-hero {
+  padding: 8px 0 40px;
+}
+.vf-blog-hero h1 {
+  letter-spacing: -0.03em;
+}
+.vf-blog-hero p {
+  max-width: 34em;
+}
+
+/* ── Toolbar ───────────────────────────────────────────────── */
+
+.vf-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0 28px;
+  border-top: 1px solid #dce4ee;
+  border-bottom: 1px solid #dce4ee;
+  margin-top: 8px;
+}
+.vf-toolbar-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 10px;
+}
+
+.vf-chip {
+  display: inline-flex;
+  align-items: center;
+  /* 38px plus the row gap clears a 44px touch target without making the chip
+     row look like a stack of buttons. */
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 100px;
+  border: 1px solid #dce4ee;
+  background: #ffffff;
+  color: #33475e;
+  font: 600 14px var(--font-body), sans-serif;
+  white-space: nowrap;
+  transition: border-color 0.2s, background 0.2s, color 0.2s, transform 0.2s;
+}
+.vf-chip:hover {
+  border-color: #8bc6ff;
+  background: #f2f8ff;
+  color: #0455a8;
+  opacity: 1;
+  transform: translateY(-1px);
+}
+.vf-chip.is-active {
+  background: #0560be;
+  border-color: #0560be;
+  color: #ffffff;
+}
+.vf-chip.is-active:hover {
+  background: #0455a8;
+  border-color: #0455a8;
+  color: #ffffff;
+}
+.vf-chip-quiet {
+  background: transparent;
+  border-style: dashed;
+  color: #566d88;
+}
+
+/* ── Search ────────────────────────────────────────────────── */
+
+.vf-search {
+  display: flex;
+  gap: 8px;
+  padding-top: 10px;
+}
+.vf-search-input {
+  min-width: 220px;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 100px;
+  border: 1px solid #dce4ee;
+  background: #ffffff;
+  color: #12202e;
+  font: 400 15px var(--font-body), sans-serif;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.vf-search-input::placeholder {
+  color: #566d88;
+}
+.vf-search-input:focus {
+  border-color: #0560be;
+  outline: none;
+  box-shadow: 0 0 0 3px #cfe4fa;
+}
+.vf-search-btn {
+  height: 42px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 100px;
+  background: #12202e;
+  color: #ffffff;
+  font: 600 14px var(--font-body), sans-serif;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.vf-search-btn:hover {
+  background: #0560be;
+  transform: translateY(-1px);
+}
+
+/* ── Pills ─────────────────────────────────────────────────── */
+
+.vf-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 11px;
+  border-radius: 100px;
+  background: #e7eef7;
+  color: #0455a8;
+  font: 700 11px var(--font-body), sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  /* Above the card-wide title overlay, so a category pill stays its own link
+     rather than being swallowed by the article link covering the card. */
+  position: relative;
+  z-index: 2;
+  transition: background 0.2s, color 0.2s;
+}
+a.vf-pill:hover {
+  background: #cfe4fa;
+  color: #033f80;
+  opacity: 1;
+}
+.vf-pill-accent {
+  background: #ff901b;
+  color: #2a1a04;
+}
+a.vf-pill-accent:hover {
+  background: #d96b00;
+  color: #ffffff;
+}
+
+/* ── Featured post ─────────────────────────────────────────── */
+
+.vf-feature {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  margin: 36px 0 44px;
+  border: 1px solid #dce4ee;
+  border-radius: 26px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 18px 48px #04295214;
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.3s;
+}
+.vf-feature:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 26px 64px #0429521f;
+}
+.vf-feature-media {
+  position: relative;
+  display: block;
+  min-height: 340px;
+  background: #e7eef7;
+}
+.vf-feature-media-empty {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #0a4f9e, #0560be 60%, #1a7ee0);
+}
+.vf-feature-body {
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.vf-feature-title {
+  font: 800 clamp(26px, 2.2vw, 34px) / 1.15 var(--font-display), sans-serif;
+  letter-spacing: -0.02em;
+  color: #12202e;
+  margin-top: 16px;
+}
+.vf-feature-title a {
+  transition: color 0.2s;
+}
+.vf-feature-title a:hover {
+  color: #0560be;
+  opacity: 1;
+}
+.vf-feature-excerpt {
+  font: 400 17px/1.6 var(--font-body), sans-serif;
+  color: #52657c;
+  margin-top: 14px;
+}
+
+/* ── Card grid ─────────────────────────────────────────────── */
+
+.vf-postgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 28px;
+}
+
+.vf-postcard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #dce4ee;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #ffffff;
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.3s, border-color 0.3s;
+}
+.vf-postcard:hover {
+  transform: translateY(-4px);
+  border-color: #c3d2e4;
+  box-shadow: 0 20px 44px #04295218;
+}
+.vf-postcard-media {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  background: #e7eef7;
+  overflow: hidden;
+}
+.vf-postcard-media-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0a4f9e, #1160b8);
+  color: #b9d6f2;
+  font: 700 13px var(--font-display), sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.vf-postcard-body {
+  padding: 20px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.vf-postcard-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.vf-postcard-title {
+  font: 700 19px/1.32 var(--font-display), sans-serif;
+  color: #12202e;
+  letter-spacing: -0.01em;
+  margin-top: 12px;
+}
+/* The title link covers the whole card so the entire surface is clickable,
+   while the accessible name stays just the title rather than the card's
+   entire text content. */
+.vf-postcard-title a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.vf-postcard-title a:hover {
+  color: #0560be;
+  opacity: 1;
+}
+.vf-postcard-excerpt {
+  font: 400 15px/1.6 var(--font-body), sans-serif;
+  color: #52657c;
+  margin-top: 10px;
+  /* Three lines, then ellipsis. Cards in a row have to agree on height or the
+     grid gets a ragged bottom edge that reads as broken. */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  line-clamp: 3;
+  overflow: hidden;
+}
+.vf-postcard-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+/* ── Empty state ───────────────────────────────────────────── */
+
+.vf-empty {
+  border: 1px dashed #c3d2e4;
+  border-radius: 22px;
+  background: #ffffff;
+  padding: 48px 32px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ── Pagination ────────────────────────────────────────────── */
+
+.vf-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 48px;
+}
+.vf-pager-list {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+}
+.vf-pager-num,
+.vf-pager-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 100px;
+  border: 1px solid #dce4ee;
+  background: #ffffff;
+  color: #33475e;
+  font: 600 14px var(--font-body), sans-serif;
+  gap: 6px;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+.vf-pager-num:hover,
+.vf-pager-step:hover {
+  border-color: #8bc6ff;
+  background: #f2f8ff;
+  color: #0455a8;
+  opacity: 1;
+}
+.vf-pager-num.is-current {
+  background: #0560be;
+  border-color: #0560be;
+  color: #ffffff;
+}
+.vf-pager-step.is-disabled {
+  opacity: 0.4;
+  /* Not a disabled button: a page that does not exist should not be in the tab
+     order at all, and a span never is. */
+  pointer-events: none;
+}
+.vf-pager-gap {
+  color: #566d88;
+  padding: 0 2px;
+}
+
+/* ── Article layout ────────────────────────────────────────── */
+
+.vf-article {
+  padding-bottom: 24px;
+}
+.vf-article-grid {
+  display: grid;
+  /* 672 + 56 gap + 256 = 984, which is exactly 1048 minus the shell's 64px of
+     padding. Round numbers that do not add up are how a body column ends up
+     narrower than the heading sitting above it. */
+  grid-template-columns: minmax(0, 42rem) minmax(0, 16rem);
+  /* column-gap, never `gap`: a row gap opens a phantom 56px band on any post
+     with no cover image. */
+  column-gap: 56px;
+}
+.vf-article-head {
+  grid-column: 1;
+  grid-row: 1;
+}
+/**
+ * Column ONE only, not `1 / -1`.
+ *
+ * It used to span both columns while the rail sat in column two of the very
+ * same row, so the two occupied one grid cell and CSS Grid simply stacked
+ * them: measured, the cover overlapped the rail by 256x646px and the contents
+ * list and CTA card floated on top of the picture.
+ *
+ * Matching the body column is also the right editorial call. A cover the width
+ * of the text reads as part of the article; one that breaks past it competes
+ * with the headline directly above.
+ *
+ * The fixed ratio is what stops it dominating the page. The source images are
+ * 3:2, so at 656px wide an unconstrained cover rendered 644px tall, taller than
+ * the headline and byline combined, and it was being upscaled past its own
+ * resolution to do it.
+ */
+.vf-article-cover {
+  grid-column: 1;
+  grid-row: 2;
+  margin-top: 32px;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid #dce4ee;
+  background: #e7eef7;
+  aspect-ratio: 16 / 9;
+}
+.vf-article-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.vf-article-main {
+  grid-column: 1;
+  grid-row: 3;
+  min-width: 0;
+  margin-top: 48px;
+}
+.vf-article-rail {
+  /* Starts beside the cover rather than below it, or there is ~300px of dead
+     space next to a full-width cover image. */
+  grid-column: 2;
+  grid-row: 2 / 4;
+}
+.vf-article-rail-inner {
+  position: sticky;
+  top: 118px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.vf-article-byline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid #dce4ee;
+}
+
+/* ── Table of contents ─────────────────────────────────────── */
+
+.vf-toc {
+  border: 1px solid #dce4ee;
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 18px 20px;
+}
+.vf-toc-heading {
+  font: 700 12px var(--font-display), sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #566d88;
+  margin-bottom: 12px;
+}
+.vf-toc-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* A long contents must not push the sticky rail past the viewport — once it
+     does, the bottom of the list becomes unreachable. */
+  max-height: calc(100vh - 240px);
+  overflow-y: auto;
+}
+.vf-toc-list li.is-sub {
+  padding-left: 14px;
+}
+.vf-toc-link {
+  display: block;
+  padding: 6px 10px;
+  border-left: 2px solid transparent;
+  border-radius: 0 8px 8px 0;
+  font: 500 14px/1.4 var(--font-body), sans-serif;
+  color: #52657c;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+.vf-toc-link:hover {
+  color: #0560be;
+  background: #f2f8ff;
+  opacity: 1;
+}
+.vf-toc-link.is-active {
+  color: #0455a8;
+  background: #f2f8ff;
+  border-left-color: #ff901b;
+  font-weight: 600;
+}
+
+.vf-toc-mobile {
+  display: none;
+  border: 1px solid #dce4ee;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 14px 16px;
+  margin-bottom: 28px;
+}
+.vf-toc-mobile summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 28px;
+}
+.vf-toc-mobile summary::-webkit-details-marker {
+  display: none;
+}
+.vf-toc-mobile summary::after {
+  content: '+';
+  color: #566d88;
+  font: 500 20px/1 var(--font-body), sans-serif;
+}
+.vf-toc-mobile[open] summary::after {
+  content: '–';
+}
+.vf-toc-mobile .vf-toc-list {
+  margin-top: 10px;
+  max-height: none;
+}
+
+/* ── Prose ─────────────────────────────────────────────────────
+   The article body is editor-generated, so it cannot carry classes and every
+   rule here has to be a descendant selector. Measure is capped by the column
+   width rather than here, so tables and figures can still use the full column. */
+
+.vf-prose {
+  font: 400 18px/1.75 var(--font-body), sans-serif;
+  color: #253749;
+}
+.vf-prose > * + * {
+  margin-top: 1.3em;
+}
+.vf-prose h2 {
+  font: 800 clamp(24px, 2vw, 30px) / 1.2 var(--font-display), sans-serif;
+  letter-spacing: -0.02em;
+  color: #12202e;
+  margin-top: 2.2em;
+  /* Anchored headings land under the fixed nav without this. */
+  scroll-margin-top: 110px;
+}
+.vf-prose h3 {
+  font: 700 clamp(19px, 1.5vw, 22px) / 1.3 var(--font-display), sans-serif;
+  color: #12202e;
+  margin-top: 1.9em;
+  scroll-margin-top: 110px;
+}
+.vf-prose h2 + h3,
+.vf-prose h2 + p,
+.vf-prose h3 + p {
+  margin-top: 0.75em;
+}
+.vf-prose p {
+  margin-top: 1.3em;
+}
+.vf-prose a {
+  color: #0455a8;
+  text-decoration: underline;
+  text-decoration-color: #8bc6ff;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
+  transition: color 0.2s, text-decoration-color 0.2s;
+}
+.vf-prose a:hover {
+  color: #033f80;
+  text-decoration-color: #ff901b;
+  opacity: 1;
+}
+.vf-prose strong {
+  color: #12202e;
+  font-weight: 700;
+}
+.vf-prose ul,
+.vf-prose ol {
+  padding-left: 1.4em;
+}
+.vf-prose li {
+  margin-top: 0.55em;
+}
+.vf-prose li::marker {
+  color: #d96b00;
+  font-weight: 700;
+}
+.vf-prose blockquote {
+  margin-top: 1.8em;
+  padding: 4px 0 4px 26px;
+  border-left: 4px solid #ff901b;
+  font: 500 20px/1.6 var(--font-display), sans-serif;
+  color: #12202e;
+}
+.vf-prose blockquote p {
+  margin-top: 0;
+}
+.vf-prose img {
+  border-radius: 16px;
+  border: 1px solid #dce4ee;
+  height: auto;
+}
+.vf-prose figure {
+  margin-top: 1.8em;
+}
+.vf-prose figcaption {
+  font: 400 14px/1.5 var(--font-body), sans-serif;
+  color: #566d88;
+  margin-top: 10px;
+  text-align: center;
+}
+.vf-prose hr {
+  border: none;
+  border-top: 1px solid #dce4ee;
+  margin: 2.4em 0;
+}
+.vf-prose code {
+  background: #eef3f9;
+  border: 1px solid #dce4ee;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 0.88em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.vf-prose pre {
+  background: #12202e;
+  color: #e7eef7;
+  border-radius: 14px;
+  padding: 20px 22px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.vf-prose pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+}
+/* The scroll container html.js wraps every bare table in. Its tabindex makes
+   it keyboard-scrollable; without the overflow here that does nothing. */
+.vf-prose .wp-block-table {
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid #dce4ee;
+  background: #ffffff;
+}
+.vf-prose table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 520px;
+  font: 400 15px/1.5 var(--font-body), sans-serif;
+}
+.vf-prose thead th {
+  background: #eef3f9;
+  color: #12202e;
+  font: 700 13px var(--font-body), sans-serif;
+  text-align: left;
+  letter-spacing: 0.02em;
+}
+.vf-prose th,
+.vf-prose td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #dce4ee;
+  vertical-align: top;
+}
+.vf-prose tbody tr:last-child td {
+  border-bottom: none;
+}
+.vf-prose iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  border: 0;
+  border-radius: 16px;
+}
+.vf-prose details {
+  border: 1px solid #dce4ee;
+  border-radius: 14px;
+  padding: 14px 18px;
+  background: #ffffff;
+}
+.vf-prose summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #12202e;
+}
+
+/* ── Article furniture ─────────────────────────────────────── */
+
+.vf-article-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 52px;
+  padding-top: 24px;
+  border-top: 1px solid #dce4ee;
+}
+
+.vf-share {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.vf-share-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 100px;
+  border: 1px solid #dce4ee;
+  background: #ffffff;
+  color: #33475e;
+  font: 600 14px var(--font-body), sans-serif;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, color 0.2s, transform 0.2s;
+}
+.vf-share-btn:hover {
+  border-color: #ff901b;
+  background: #fff7ee;
+  color: #a85800;
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+.vf-backtotop {
+  font: 600 14px var(--font-body), sans-serif;
+  color: #566d88;
+  transition: color 0.2s;
+}
+.vf-backtotop:hover {
+  color: #0560be;
+  opacity: 1;
+}
+
+.vf-prevnext {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 40px;
+}
+.vf-prevnext-card {
+  display: block;
+  border: 1px solid #dce4ee;
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 20px 22px;
+  transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+}
+.vf-prevnext-card:hover {
+  border-color: #8bc6ff;
+  transform: translateY(-3px);
+  box-shadow: 0 16px 36px #04295214;
+  opacity: 1;
+}
+.vf-prevnext-next {
+  text-align: right;
+}
+
+.vf-authorbio {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  margin-top: 40px;
+  padding: 24px;
+  border: 1px solid #dce4ee;
+  border-radius: 20px;
+  background: #eef3f9;
+}
+
+.vf-related {
+  margin-top: 88px;
+}
+
+/* ── Rail cards ────────────────────────────────────────────── */
+
+.vf-rail-card {
+  border: 1px solid #dce4ee;
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 18px 20px;
+}
+.vf-rail-card-accent {
+  background: linear-gradient(150deg, #0a4f9e, #0560be);
+  border-color: #0455a8;
+}
+.vf-rail-heading {
+  font: 700 12px var(--font-display), sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #566d88;
+  margin-bottom: 12px;
+}
+.vf-rail-link {
+  display: block;
+  font: 600 15px/1.4 var(--font-body), sans-serif;
+  color: #12202e;
+  padding: 10px 0;
+  border-bottom: 1px solid #dce4ee;
+  transition: color 0.2s;
+}
+.vf-rail-link:last-child {
+  border-bottom: none;
+}
+.vf-rail-link:hover {
+  color: #0560be;
+  opacity: 1;
+}
+
+/* ── Conversion block ──────────────────────────────────────── */
+
+.vf-blogcta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  margin-top: 88px;
+  padding: 48px;
+  border-radius: 28px;
+  background: linear-gradient(140deg, #033f80, #0560be 55%, #0668cc);
+  box-shadow: 0 24px 60px #04295226;
+}
+.vf-blogcta .vf-btn-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ff901b;
+  color: #2a1a04;
+  font: 700 17px var(--font-body), sans-serif;
+  padding: 16px 34px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+
+/* ── Topic hub ─────────────────────────────────────────────── */
+
+.vf-topics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+  margin-top: 36px;
+}
+.vf-topic-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #dce4ee;
+  border-radius: 20px;
+  background: #ffffff;
+  padding: 26px;
+  transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+}
+.vf-topic-card:hover {
+  transform: translateY(-3px);
+  border-color: #8bc6ff;
+  box-shadow: 0 18px 40px #04295216;
+}
+.vf-tagcloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+/* ── Touch targets ─────────────────────────────────────────────
+   Measured on a 375px viewport, where the breadcrumb links came out 17px tall,
+   the byline category pill 22px, and the contents links 32px. WCAG 2.2's
+   minimum target size (2.5.8, AA) is 24×24, and 2.5.5 asks for 44×44 at AAA —
+   so the crumbs were failing outright and the rest were merely unpleasant.
+
+   Scoped to `pointer: coarse` rather than a width breakpoint: this is about
+   what is doing the pointing, not how wide the screen is. A touchscreen laptop
+   needs the bigger targets at 1400px; a mouse does not need them at 375px, and
+   applying them there would loosen a layout that is already tight for room. */
+
+@media (pointer: coarse) {
+  .vf-crumb {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+  }
+  a.vf-pill {
+    min-height: 32px;
+  }
+  .vf-toc-link {
+    padding: 11px 10px;
+  }
+  .vf-rail-link {
+    padding: 13px 0;
+  }
+  .vf-footlink,
+  .vf-backtotop {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+  }
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+
+@media (max-width: 1080px) {
+  .vf-blog {
+    padding-top: 104px;
+  }
+  .vf-article-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .vf-article-head,
+  .vf-article-cover,
+  .vf-article-main {
+    grid-column: 1;
+  }
+  .vf-article-main {
+    grid-row: 3;
+    margin-top: 36px;
+  }
+  /* The rail's only unique content is the contents list, which the mobile
+     disclosure already carries. Keeping both would put the same links in the
+     accessibility tree twice. */
+  .vf-article-rail {
+    display: none;
+  }
+  .vf-toc-mobile {
+    display: block;
+  }
+}
+
+@media (max-width: 900px) {
+  .vf-feature {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .vf-feature-media {
+    min-height: 0;
+    aspect-ratio: 16 / 9;
+  }
+  .vf-feature-body {
+    padding: 28px;
+  }
+  .vf-blogcta {
+    padding: 36px 28px;
+  }
+}
+
+@media (max-width: 720px) {
+  .vf-shell {
+    padding: 0 20px;
+  }
+  .vf-postgrid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+  }
+  .vf-prevnext {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .vf-prevnext-next {
+    text-align: left;
+  }
+  .vf-prose {
+    font-size: 17px;
+  }
+  .vf-prose table {
+    min-width: 480px;
+  }
+  .vf-toolbar {
+    align-items: stretch;
+  }
+  .vf-search {
+    width: 100%;
+  }
+  .vf-search-input {
+    flex: 1;
+    min-width: 0;
+  }
+  .vf-authorbio {
+    flex-direction: column;
+  }
+  .vf-blogcta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

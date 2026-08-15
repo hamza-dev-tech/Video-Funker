@@ -42,13 +42,30 @@ img {
 
 /* ── Motion ─────────────────────────────────────────────────── */
 
+/* ── Hero entrance ───────────────────────────────────────────────
+   These two deliberately do NOT animate opacity, and that is a performance
+   decision rather than an aesthetic one.
+
+   Both are applied with `both` fill-mode and a delay (Hero.js uses 0.1s to
+   0.85s). With `opacity: 0` in the `from` frame, the element holds that state
+   for the whole delay and then fades in over the duration. The hero headline
+   is the page's LCP candidate, and an element at opacity 0 is not painted, so
+   Largest Contentful Paint could not be recorded until roughly a second after
+   the HTML had already arrived and been laid out. The site was reporting a
+   slow LCP that it had entirely inflicted on itself, for a fade nobody asked
+   for.
+
+   Transform-only keeps the movement, which is the part you actually see, and
+   lets the text paint at full opacity on the first frame. Used only by
+   Hero.js; the scroll reveals below the fold still fade, via [data-reveal],
+   where the cost is zero because they are not LCP candidates. */
 @keyframes rise {
-  from { opacity: 0; transform: translateY(40px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { transform: translateY(40px); }
+  to   { transform: translateY(0); }
 }
 @keyframes riseBig {
-  from { opacity: 0; transform: translateY(70px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from { transform: translateY(70px) scale(0.97); }
+  to   { transform: translateY(0) scale(1); }
 }
 @keyframes marquee {
   from { transform: translateX(0); }
@@ -188,10 +205,24 @@ img {
 
 /* The lockup is 34px tall; the link around it has to reach 44 to be a legal
    touch target. Padding rather than height so the logo stays optically placed. */
+/* `min-height: 44px` makes the link a legal touch target while the lockup is
+   only 34px tall, so the extra 10px has to be shared above and below rather
+   than falling under the image. Without the flex centring the anchor lays the
+   image out on its text baseline: the box centred correctly but the logo
+   inside it sat 5px high, which read as the brand being misaligned against the
+   burger even though the burger was dead centre. Measured, pill centre 41,
+   burger 41, logo 36. */
 .vf-logo {
+  display: inline-flex;
+  align-items: center;
   min-height: 44px;
   padding: 5px 0;
   transition: transform 0.25s;
+}
+/* next/image renders a plain <img>; inline images sit on the baseline and
+   leave descender space beneath them, which reintroduces the same offset. */
+.vf-logo img {
+  display: block;
 }
 .vf-logo:hover {
   transform: scale(1.05);
@@ -438,11 +469,48 @@ img {
    the section's most saturated blue — roughly 4.9:1 against the background —
    so a heavy drop shadow on top of that reads as a spotlight rather than a
    card, and the strip starts looking like lit panels instead of a feed. */
-.vf-postcard {
-  flex: none;
-  border-radius: 20px;
+/* `.vf-postcard` used to live here, for the flat PNG post cards in the feed
+   strip. Those are real markup now, so nothing on the marketing page carries
+   the class any more. It is deleted rather than left in place because the blog
+   defines its OWN `.vf-postcard` in app/blog/blog.css, and this rule was still
+   matching those cards and painting them a drop shadow their design never
+   asked for. Two stylesheets, one class name, silently interfering. */
+
+/* ── Feed marquee ────────────────────────────────────────────────
+   The animation lives here rather than inline so it can do two things an
+   inline style cannot: pause on hover, and stop under reduced motion. */
+
+.vf-marquee-mask {
+  position: relative;
   overflow: hidden;
-  box-shadow: 0 14px 34px rgba(4, 41, 82, 0.18);
+  padding: 20px 0 90px;
+  /* Cards fade in and out at the edges instead of being chopped off square by
+     the viewport, which is what made the strip read as a clipped screenshot. */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
+}
+
+.vf-marquee {
+  display: flex;
+  width: max-content;
+  align-items: flex-start;
+  animation-name: marquee;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  /* duration is set inline, derived from card count and a fixed px/second */
+}
+
+/* Hovering stops the strip so the cards can actually be read. Without this the
+   copy on them is decoration nobody ever finishes a sentence of. */
+.vf-marquee-mask:hover .vf-marquee,
+.vf-marquee-mask:focus-within .vf-marquee {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vf-marquee {
+    animation: none;
+  }
 }
 
 /* Height is set in JS to match the artwork cards exactly. A feed can be
@@ -511,6 +579,18 @@ img {
   margin: 0;
 }
 
+/* A video caption is short and finishes its sentence, so it clamps cleanly
+   instead of fading. The fade belongs to the wall of text on the other card,
+   where being cut off mid-thought is the entire point. */
+.vf-post-caption {
+  flex: none;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
 /* The wall of text: fills the card, then dissolves rather than being cut.
    "…see more" sits outside the masked element so the fade doesn't eat it. */
 .vf-post-wall-wrap {
@@ -558,6 +638,21 @@ img {
   align-items: center;
   justify-content: center;
   box-shadow: 0 6px 18px rgba(12, 43, 74, 0.34), 0 0 0 6px #ffffff3d;
+  /* A slow halo breathing outward. It is the one motion cue that says "this
+     card is a video and the other one is not", which is the whole argument the
+     section is making. Animating box-shadow rather than a scaled pseudo-element
+     keeps it off the layout path. */
+  animation: playPulse 2.8s ease-in-out infinite;
+}
+
+@keyframes playPulse {
+  0%,
+  100% {
+    box-shadow: 0 6px 18px rgba(12, 43, 74, 0.34), 0 0 0 6px #ffffff3d;
+  }
+  50% {
+    box-shadow: 0 6px 18px rgba(12, 43, 74, 0.34), 0 0 0 13px #ffffff17;
+  }
 }
 .vf-post-play > span {
   width: 0;
@@ -585,6 +680,18 @@ img {
   border-top: 1px solid currentColor;
   font: 600 13px var(--font-body), sans-serif;
   opacity: 0.85;
+  /* flex: none so the row keeps its height when the caption above it grows.
+     Without it the stats row is the thing that gets squeezed, and the border
+     ends up sitting on top of the last line of text. */
+  flex: none;
+}
+
+/* Holds the little eye and comment glyphs on the same baseline as the number
+   they belong to. */
+.vf-post-stats > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 .vf-post-video .vf-post-stats {
   border-top-color: #dce4ee;
@@ -882,4 +989,551 @@ img {
   .vf-compare-frame::after {
     opacity: 1;
   }
+}
+
+/* ── Latest posts strip ─────────────────────────────────────── */
+
+.vf-latest {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.vf-latest-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  background: #ffffff;
+  border: 1px solid #dce4ee;
+  border-radius: 18px;
+  overflow: hidden;
+  transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+.vf-latest-card:hover {
+  transform: translateY(-6px);
+  border-color: #ff901b;
+  box-shadow: 0 20px 48px #04295215;
+}
+
+.vf-latest-media {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  background: #e7eef7;
+}
+
+.vf-latest-body {
+  padding: 20px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+/* The title link covers the card so the whole surface is clickable, while the
+   accessible name stays the title rather than every word in the card. */
+.vf-latest-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+.vf-latest-link:hover {
+  color: #0560be;
+  opacity: 1;
+}
+
+/* Three lines, so a row of cards agrees on height instead of ending ragged. */
+.vf-latest-excerpt {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .vf-latest {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── Content pages ───────────────────────────────────────────────
+   The long-form service and legal pages (/founder-led-video, /pricing,
+   /privacy ...). Scoped under .vf-page so nothing here reaches the marketing
+   sections, and named vf-page-* rather than reusing the blog's vf-prose,
+   because those live in app/blog/blog.css which only the blog layout imports.
+   Two stylesheets sharing a class name is the bug this file already had once
+   with .vf-postcard. */
+
+.vf-page,
+.vf-page *,
+.vf-page *::before,
+.vf-page *::after {
+  box-sizing: border-box;
+}
+
+.vf-page {
+  padding: 128px 0 0;
+}
+
+.vf-page-shell {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 0 24px 96px;
+}
+
+.vf-crumbs-plain {
+  font: 500 13px var(--font-body), sans-serif;
+  color: #566d88;
+}
+.vf-crumbs-plain a:hover {
+  color: #0560be;
+  opacity: 1;
+}
+
+.vf-page-prose {
+  font: 400 18px/1.75 var(--font-body), sans-serif;
+  color: #253749;
+  margin-top: 44px;
+}
+.vf-page-prose h2 {
+  font: 700 clamp(24px, 2vw, 30px) / 1.2 var(--font-display), sans-serif;
+  letter-spacing: -0.02em;
+  color: #12202e;
+  margin-top: 2.1em;
+  scroll-margin-top: 120px;
+}
+.vf-page-prose h3 {
+  font: 600 clamp(19px, 1.5vw, 22px) / 1.3 var(--font-display), sans-serif;
+  color: #12202e;
+  margin-top: 1.8em;
+  scroll-margin-top: 120px;
+}
+.vf-page-prose p {
+  margin-top: 1.25em;
+}
+.vf-page-prose h2 + p,
+.vf-page-prose h3 + p,
+.vf-page-prose h2 + h3 {
+  margin-top: 0.7em;
+}
+.vf-page-prose a {
+  color: #0455a8;
+  text-decoration: underline;
+  text-decoration-color: #8bc6ff;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
+  transition: color 0.2s, text-decoration-color 0.2s;
+}
+.vf-page-prose a:hover {
+  color: #033f80;
+  text-decoration-color: #ff901b;
+  opacity: 1;
+}
+.vf-page-prose strong {
+  color: #12202e;
+  font-weight: 700;
+}
+.vf-page-prose ul,
+.vf-page-prose ol {
+  padding-left: 1.4em;
+  margin-top: 1.25em;
+}
+.vf-page-prose li {
+  margin-top: 0.55em;
+}
+.vf-page-prose li::marker {
+  color: #d96b00;
+  font-weight: 700;
+}
+
+/* Same scroll container the blog gives its tables: without it, overflow-x on
+   the body amputates the trailing columns with no scrollbar to hint they are
+   there. tabindex makes it reachable without a mouse. */
+.vf-page-prose .wp-block-table {
+  margin-top: 1.7em;
+  overflow-x: auto;
+  border: 1px solid #dce4ee;
+  border-radius: 14px;
+  background: #ffffff;
+}
+.vf-page-prose table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 560px;
+  font: 400 15px/1.5 var(--font-body), sans-serif;
+}
+.vf-page-prose thead th {
+  background: #eef3f9;
+  color: #12202e;
+  font: 700 13px var(--font-body), sans-serif;
+  text-align: left;
+}
+.vf-page-prose th,
+.vf-page-prose td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #dce4ee;
+  vertical-align: top;
+}
+.vf-page-prose tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.vf-pagecta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 26px;
+  padding: 44px;
+  border-radius: 26px;
+  background: linear-gradient(140deg, #033f80, #0560be 55%, #0668cc);
+  box-shadow: 0 24px 60px #04295226;
+}
+.vf-pagecta .vf-btn-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ff901b;
+  color: #2a1a04;
+  font: 700 17px var(--font-body), sans-serif;
+  padding: 16px 34px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .vf-page {
+    padding-top: 108px;
+  }
+  .vf-page-prose {
+    font-size: 17px;
+  }
+  .vf-page-prose table {
+    min-width: 480px;
+  }
+  .vf-pagecta {
+    padding: 32px 26px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ── Heading lead line ───────────────────────────────────────────
+   The plain, searchable second line inside each section h2. It is a block so
+   it drops below the display line, and it deliberately does NOT inherit the
+   h2's clamp() size: at 56px it would compete with the line above it instead
+   of supporting it. #why-video and #proof sit on the blue panels, so their
+   colour is overridden there rather than being set per component. */
+
+.vf-h2-lead {
+  display: block;
+  margin-top: 12px;
+  font: 500 clamp(17px, 1.5vw, 21px) / 1.4 var(--font-body), sans-serif;
+  letter-spacing: 0;
+  color: #52657c;
+}
+
+#why-video .vf-h2-lead,
+#proof .vf-h2-lead {
+  color: #b9d6f2;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────
+   Replaces .vf-footer / .vf-footer-inner / .vf-footlink. The old layout was
+   two columns with the links pushed hard right, which opened a thousand pixels
+   of dead space on a wide monitor and gave the site's only every-page linking
+   surface a total of four anchors. */
+
+.vf-footer2 {
+  padding: 72px 48px 32px;
+}
+
+.vf-footer2-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  /* The brand block is fixed-ish and the columns take the rest, so the gap
+     between them cannot grow unbounded on a wide screen the way a
+     space-between row did. */
+  grid-template-columns: minmax(260px, 340px) 1fr;
+  gap: 64px;
+  align-items: start;
+}
+
+.vf-footer2-brand {
+  min-width: 0;
+}
+
+.vf-footer2-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 13px 24px;
+  border-radius: 100px;
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+.vf-footer2-cta:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px #ff901b4d;
+}
+.vf-footer2-cta-arrow {
+  transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.vf-footer2-cta:hover .vf-footer2-cta-arrow {
+  transform: translateX(4px);
+}
+
+/* auto-fit rather than a hardcoded count. The footer has gained a group twice
+   now (Company and Legal when the trust pages shipped, Compare when the /vs
+   pages did), and each time a fixed `repeat(3, …)` silently wrapped the new
+   column onto a second row with three empty cells beside it. This grows and
+   shrinks with the group count on its own. */
+.vf-footer2-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 32px 28px;
+}
+.vf-footer2-cols ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vf-footer2-heading {
+  font: 700 11px var(--font-display), sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #566d88;
+  margin-bottom: 14px;
+}
+
+/* The link slides right and gains an underline that wipes in from the left.
+   Both are transforms on a pseudo-element, so neither touches layout. 40px of
+   height clears the WCAG 2.2 target minimum without spacing the list out. */
+.vf-footer2-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  font: 500 15px var(--font-body), sans-serif;
+  color: #33475e;
+  transition: color 0.2s, transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.vf-footer2-link span {
+  position: relative;
+}
+.vf-footer2-link span::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  background: #ff901b;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.28s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.vf-footer2-link:hover {
+  color: #0455a8;
+  opacity: 1;
+  transform: translateX(3px);
+}
+.vf-footer2-link:hover span::after,
+.vf-footer2-link:focus-visible span::after {
+  transform: scaleX(1);
+}
+
+.vf-footer2-base {
+  max-width: 1280px;
+  margin: 56px auto 0;
+  padding-top: 26px;
+  border-top: 1px solid #dce4ee;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@media (max-width: 1000px) {
+  .vf-footer2-inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 48px;
+  }
+}
+
+@media (max-width: 640px) {
+  .vf-footer2 {
+    padding: 56px 20px 28px;
+  }
+  .vf-footer2-cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px;
+  }
+  .vf-footer2-base {
+    margin-top: 40px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ── Nav, rebuilt ────────────────────────────────────────────────
+   The row's layout used to live in inline styles on the component, which meant
+   no media query could reach it and every responsive fix had to fight
+   specificity with !important. It is classes now. */
+
+.vf-nav-row {
+  position: relative;
+  box-sizing: border-box;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 26px 40px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+}
+
+.vf-nav-links {
+  display: flex;
+  gap: 6px;
+  justify-self: center;
+}
+
+.vf-nav-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-self: end;
+}
+
+.vf-navlink,
+.vf-nav-login {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 9px 16px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+
+.vf-btn-sm {
+  display: inline-flex;
+  align-items: center;
+  padding: 11px 22px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+
+/* Current section. The bar is a transform on a pseudo-element so the highlight
+   costs no layout as the reader scrolls and it moves between links. */
+/* Underline only. The pill background read as a permanently hovered button,
+   which is exactly what the hover state already looks like, so the two were
+   indistinguishable and the "current section" never announced itself. A bar is
+   also the convention every reader already knows from a tab strip. */
+.vf-navlink.is-active {
+  position: relative;
+  background: transparent;
+  color: #0455a8;
+  font-weight: 600;
+}
+.vf-navlink.is-active:hover {
+  background: transparent;
+}
+.vf-navlink.is-active::after {
+  content: '';
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 2px;
+  height: 2px;
+  border-radius: 2px;
+  background: #ff901b;
+  transform-origin: center;
+  animation: drawX 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* ── Below the desktop breakpoint ─────────────────────────────────
+   Flex, not grid. `.vf-nav-links` is display:none here, and a display-none
+   child is removed from the grid entirely rather than collapsing its track, so
+   the actions block slid into column two: at 320px the grid measured
+   `63.4px 161.2px 63.4px`, leaving the logo and the buttons touching with 63px
+   of dead space stranded on the right. space-between cannot express that. */
+
+@media (max-width: 1080px) {
+  .vf-nav-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px 28px;
+  }
+}
+
+@media (max-width: 600px) {
+  .vf-nav-row {
+    padding: 14px 14px !important;
+    gap: 10px;
+  }
+  /* Two controls, not three. At 320px the header had Log in, Start free and
+     the burger sharing 161px beside the logo. Log in and the CTA both live in
+     the menu now, which is where a phone user expects them. */
+  .vf-nav-actions .vf-btn-sm {
+    display: none;
+  }
+}
+
+/* ── Mobile menu ─────────────────────────────────────────────────
+   Was six 52px rows stacked to 342px with `overflow: hidden` and no height
+   cap, so on a short viewport the last items were simply unreachable. */
+
+.vf-mobile-menu {
+  max-height: calc(100dvh - 96px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.vf-mobile-menu a {
+  min-height: 46px;
+  padding: 0 16px;
+  font-size: 16px;
+}
+
+/* In the menu the row IS the target, so a left rule reads better than an
+   underline and does not compete with the row's own hover fill. */
+.vf-mobile-menu a.is-active {
+  color: #0455a8;
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 #ff901b;
+}
+
+.vf-mobile-menu-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #dce4ee;
+}
+
+.vf-mobile-menu a.vf-mobile-menu-login {
+  color: #52657c;
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.vf-mobile-menu a.vf-mobile-menu-cta {
+  justify-content: center;
+  min-height: 50px;
+  border-radius: 100px;
+  transition: transform 0.2s;
+}
+.vf-mobile-menu a.vf-mobile-menu-cta:active {
+  transform: scale(0.97);
 }
