@@ -1,0 +1,82 @@
+# Push to master, and the VPS builds and swaps in the new release.
+#
+# ── ON COST ──────────────────────────────────────────────────────────────────
+# This runs on GitHub-hosted runners, which are free with no minute cap for
+# PUBLIC repositories. Video-Funker is public, so this workflow bills nothing.
+# If the repo is ever made private, standard-runner minutes start being metered
+# against the account's included quota. The escape hatch at that point is a
+# self-hosted runner on this same VPS, which is free at any visibility, not
+# deleting the workflow.
+#
+# ── ON SECURITY ──────────────────────────────────────────────────────────────
+# The trigger is deliberately `push` on master ONLY, never `pull_request`.
+# On a public repo anyone can open a PR, and a `pull_request` trigger that
+# could reach these secrets would hand an SSH key to the whole internet.
+# GitHub already withholds secrets from fork PRs, but not relying on that is
+# the difference between one safeguard and two.
+#
+# The heavy lifting is in /root/deploy-videofunker.sh on the server rather than
+# here: it builds a fresh release beside the live one and only repoints the
+# symlink after the build succeeds AND the new process answers a health check,
+# rolling back if it does not. That means a broken commit cannot take the site
+# down, and a deploy can be run by hand over SSH when GitHub is having a day.
+
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+    # Documentation and local scratch changes should not rebuild the site.
+    paths-ignore:
+      - '**/*.md'
+      - '.gitignore'
+  workflow_dispatch: {}
+
+# One deploy at a time. Two overlapping runs would race on the releases
+# directory and on the pm2 reload. `cancel-in-progress: false` because
+# interrupting a half-finished deploy is worse than queueing behind it.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build on the VPS and swap the release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Load the deploy key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # Pin the host key instead of using StrictHostKeyChecking=no, which
+          # would accept any machine answering on that address.
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -o BatchMode=yes \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "bash /root/deploy-videofunker.sh master"
+
+      - name: Verify the live site
+        run: |
+          # The deploy script already health-checks on the box. This checks the
+          # public edge, which also exercises Apache and TLS, so a proxy or
+          # certificate problem is caught here rather than by a visitor.
+          for i in 1 2 3 4 5; do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 https://videofunker.ai/ || echo 000)
+            echo "attempt $i: HTTP $CODE"
+            [ "$CODE" = "200" ] && exit 0
+            sleep 6
+          done
+          echo "Site did not return 200 after the deploy."
+          exit 1
+
+      - name: SEO invariants
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -o BatchMode=yes \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "cd /var/www/videofunker/current/client && node scripts/seo-check.mjs https://videofunker.ai"
