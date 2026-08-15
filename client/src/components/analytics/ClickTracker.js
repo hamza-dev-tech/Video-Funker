@@ -105,9 +105,25 @@ export default function ClickTracker() {
   return null;
 }
 
-/** Trimmed, length-capped label. GA4 rejects string params over 100 chars. */
+/**
+ * A readable label for the link.
+ *
+ * textContent first, then the accessible name, then the alt text of an image
+ * inside it. The fallbacks are not defensive padding: the blog cards and the
+ * logo wrap an image with no text node at all, so textContent alone returns
+ * empty string and those rows arrive in GA4 blank — the exact clicks worth
+ * reading about, indistinguishable from each other in the report.
+ *
+ * Capped at 100 because GA4 silently drops string params longer than that.
+ */
 function text(el) {
-  return (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 100);
+  const raw =
+    el.textContent?.trim() ||
+    el.getAttribute('aria-label') ||
+    el.getAttribute('title') ||
+    el.querySelector('img[alt]')?.getAttribute('alt') ||
+    '';
+  return raw.replace(/\s+/g, ' ').trim().slice(0, 100);
 }
 
 /** Any data-track-* attributes, passed through as event params. */
