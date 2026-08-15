@@ -1,7 +1,12 @@
+import { Suspense } from 'react';
+
 import { Plus_Jakarta_Sans, Hanken_Grotesk } from 'next/font/google';
 
 import { site, SITE_URL } from '@/config/site';
 import { buildGraph, ldJson, siteGraph } from '@/lib/blog/schema';
+import Analytics, { GoogleTagManagerNoScript } from '@/components/analytics/Analytics';
+import PageViews from '@/components/analytics/PageViews';
+import CookieConsent from '@/components/analytics/CookieConsent';
 import './globals.css';
 
 const display = Plus_Jakarta_Sans({
@@ -25,6 +30,16 @@ export const metadata = {
     template: `%s · ${site.name}`,
   },
   description: site.description,
+  /**
+   * Search Console verification.
+   *
+   * Emitted only when the env var is set, so no stale token ships once the
+   * property is verified. This covers the URL-prefix property; a Domain
+   * property is verified by DNS TXT instead and needs nothing in the HTML.
+   */
+  ...(process.env.NEXT_PUBLIC_GSC_VERIFICATION
+    ? { verification: { google: process.env.NEXT_PUBLIC_GSC_VERIFICATION } }
+    : {}),
   /**
    * NO `alternates.canonical` here, and no `keywords`.
    *
@@ -127,13 +142,26 @@ const jsonLd = buildGraph(...siteGraph['@graph'], appNode);
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${display.variable} ${body.variable}`}>
+      <head>
+        {/* Consent defaults must execute before the container loads, so this
+            sits in <head> rather than beside the rest of the body scripts. */}
+        <Analytics />
+      </head>
       <body>
+        {/* GTM's noscript has to be the first thing inside <body>. */}
+        <GoogleTagManagerNoScript />
         {/* Reveals start hidden and are shown by an observer. Without JS that
             observer never runs, so hand those elements straight to visible. */}
         <noscript>
           <style>{'[data-reveal]{opacity:1 !important;transform:none !important}'}</style>
         </noscript>
         {children}
+        {/* Suspense: PageViews reads useSearchParams, which would otherwise
+            opt every static page in the app into dynamic rendering. */}
+        <Suspense fallback={null}>
+          <PageViews />
+        </Suspense>
+        <CookieConsent />
         <script
           type="application/ld+json"
           // ldJson, not JSON.stringify: it escapes `</script>` and the two raw

@@ -1537,3 +1537,95 @@ img {
 .vf-mobile-menu a.vf-mobile-menu-cta:active {
   transform: scale(0.97);
 }
+
+/* ── Consent banner ──────────────────────────────────────────────
+   A bar, not a modal. A blocking consent wall on a marketing site costs more
+   visitors than the analytics it protects are worth, and the EDPB position is
+   that rejecting must be no harder than accepting, so the two buttons are
+   identical in size and weight. */
+
+.vf-consent {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 80;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 16px 20px;
+  border: 1px solid #dce4ee;
+  border-radius: 16px;
+  background: #ffffffec;
+  backdrop-filter: blur(14px) saturate(1.4);
+  box-shadow: 0 18px 48px #04295226;
+  animation: consentIn 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes consentIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.vf-consent-text {
+  font: 400 14px/1.55 var(--font-body), sans-serif;
+  color: #33475e;
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.vf-consent-link {
+  color: #0455a8;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.vf-consent-actions {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+
+.vf-consent-btn {
+  min-height: 44px;
+  padding: 0 22px;
+  border-radius: 100px;
+  border: 1px solid #c3d2e4;
+  background: #ffffff;
+  color: #33475e;
+  font: 600 14px var(--font-body), sans-serif;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.2s;
+}
+.vf-consent-btn:hover {
+  border-color: #8bc6ff;
+  background: #f2f8ff;
+  transform: translateY(-1px);
+}
+.vf-consent-btn-accept {
+  border-color: transparent;
+}
+.vf-consent-btn-accept:hover {
+  border-color: transparent;
+  background: #ff901b;
+  filter: brightness(1.05);
+}
+
+@media (max-width: 560px) {
+  .vf-consent {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    padding: 14px 16px;
+  }
+  .vf-consent-actions {
+    width: 100%;
+  }
+  .vf-consent-btn {
+    flex: 1;
+  }
+}
