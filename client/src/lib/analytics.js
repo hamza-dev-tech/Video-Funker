@@ -12,8 +12,26 @@
  * before wondering why an id edit did nothing.
  */
 
+import { GA4_ID } from '@/config/site';
+
 export const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || '';
-export const GA_ID = process.env.NEXT_PUBLIC_GA_ID || '';
+
+/**
+ * The env var wins if it is set, so a staging box can point at a throwaway
+ * property without a code change. Otherwise the committed id applies, but ONLY
+ * in a production build.
+ *
+ * That NODE_ENV guard is the important half. Next replaces `process.env.NODE_ENV`
+ * statically at build time — 'development' under `next dev`, 'production' under
+ * `next build` — so this is a compile-time branch, not a runtime check, and the
+ * id is not even present in the development bundle. Without it, every page
+ * opened while working on the site would send real hits: the property would
+ * fill with sessions from one machine in one city hammering the same routes,
+ * and the traffic reports would be describing the developer rather than the
+ * market.
+ */
+export const GA_ID =
+  process.env.NEXT_PUBLIC_GA_ID || (process.env.NODE_ENV === 'production' ? GA4_ID : '');
 
 /** No id, no scripts, no third-party requests. */
 export function analyticsEnabled() {

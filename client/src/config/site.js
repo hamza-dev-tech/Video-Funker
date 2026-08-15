@@ -8,6 +8,24 @@ export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://app.videofunk
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://videofunker.ai';
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
+/**
+ * GA4 measurement id.
+ *
+ * Committed rather than kept in the deployment's env file, and that is a
+ * considered choice rather than a shortcut. A measurement id is public by
+ * design: it is embedded in the page source of every site that uses it, and
+ * anyone can read it with View Source. It authorises nothing — sending data to
+ * a property is not the same as reading from it, which needs an actual Google
+ * account with access. Treating it as a secret buys no security and costs a
+ * server round-trip every time it needs changing.
+ *
+ * Applied only in production builds; see lib/analytics.js. Local development
+ * must not send hits, or every page you open while working lands in the same
+ * property as real visitors and quietly ruins the numbers you are trying to
+ * read.
+ */
+export const GA4_ID = 'G-MQBN436T8E';
+
 export const site = {
   name: 'Video Funker',
   legalName: 'Video Funker',
