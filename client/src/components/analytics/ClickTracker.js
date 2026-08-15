@@ -117,13 +117,45 @@ export default function ClickTracker() {
  * Capped at 100 because GA4 silently drops string params longer than that.
  */
 function text(el) {
-  const raw =
+  const own =
     el.textContent?.trim() ||
     el.getAttribute('aria-label') ||
     el.getAttribute('title') ||
     el.querySelector('img[alt]')?.getAttribute('alt') ||
     '';
-  return raw.replace(/\s+/g, ' ').trim().slice(0, 100);
+  return clamp(own || borrowedName(el) || slugLabel(el.getAttribute('href')));
+}
+
+/**
+ * The name of a sibling link pointing at the same place.
+ *
+ * The post cards link to the same article twice, once wrapping the thumbnail
+ * and once wrapping the headline. The thumbnail one is correctly aria-hidden
+ * with an empty alt, because a screen reader announcing the same destination
+ * twice is a defect — which means it has no accessible name to read, by
+ * design. Rather than damage the markup to suit analytics, this reads the
+ * headline that is already sitting beside it.
+ */
+function borrowedName(el) {
+  const href = el.getAttribute('href');
+  if (!href) return '';
+  const card = el.closest('article, li, .vf-latest-item, .vf-post-card') || document;
+  for (const twin of card.querySelectorAll(`a[href="${CSS.escape(href)}"]`)) {
+    const name = twin.textContent?.trim();
+    if (name) return name;
+  }
+  return '';
+}
+
+/** Last resort: the slug, made readable. Never blank, and never invented. */
+function slugLabel(href) {
+  const slug = (href || '').split(/[?#]/)[0].replace(/\/+$/, '').split('/').pop() || '';
+  return slug.replace(/[-_]+/g, ' ').trim();
+}
+
+/** GA4 silently drops string params over 100 characters. */
+function clamp(s) {
+  return String(s).replace(/\s+/g, ' ').trim().slice(0, 100);
 }
 
 /** Any data-track-* attributes, passed through as event params. */
