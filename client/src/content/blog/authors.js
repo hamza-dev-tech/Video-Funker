@@ -15,7 +15,7 @@ export const authors = {
     // A team is an Organization, not a Person. The article graph reads this and
     // references the company instead of inventing a human with a job title.
     type: 'Organization',
-    avatar: '/art/avatar-founder.jpg',
+    avatar: null,
     bio: 'We produce founder-led video for B2B teams and write up what we learn from the campaigns we run.',
     url: '/blog/author/editorial',
   },
@@ -23,7 +23,7 @@ export const authors = {
     key: 'elena',
     name: 'Elena Marsh',
     title: 'Head of Content',
-    avatar: '/art/avatar-elena.jpg',
+    avatar: null,
     bio: 'Elena runs the scripting side of Video Funker. She has written for founders in security, fintech and devtools, and has strong opinions about the first four seconds of a video.',
     url: '/blog/author/elena',
   },
@@ -31,7 +31,7 @@ export const authors = {
     key: 'marcus',
     name: 'Marcus Adeyemi',
     title: 'Head of Distribution',
-    avatar: '/art/avatar-marcus.jpg',
+    avatar: null,
     bio: 'Marcus builds the outreach engine that carries our clients’ videos into the feed. He spends most of his week reading reply data.',
     url: '/blog/author/marcus',
   },

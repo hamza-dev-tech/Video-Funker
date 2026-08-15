@@ -132,7 +132,20 @@ function authorOf(p) {
     name: a.name || 'The Video Funker team',
     title: a.title || null,
     bio: a.bio || null,
-    avatar: a.avatar || null,
+    /**
+     * No avatar.
+     *
+     * WordPress answers with a Gravatar URL, and gravatar.com is not in the
+     * remotePatterns in next.config.mjs, so next/image refuses it and every
+     * byline painted a broken-image icon. Whitelisting Gravatar would fix the
+     * icon and introduce a third-party request on every card that leaks a
+     * hash of the author's email address to Automattic.
+     *
+     * Bylines read fine as name and job title. If real portraits are wanted
+     * later, upload them to the CMS media library and read that URL here: the
+     * media host is already whitelisted because the covers come from it.
+     */
+    avatar: null,
     // Only when the CMS supplies a real, live URL. An author link to a page
     // that does not exist is worse than no link at all.
     url: a.url || null,
