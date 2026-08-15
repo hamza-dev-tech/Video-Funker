@@ -7,6 +7,7 @@ import { buildGraph, ldJson, siteGraph } from '@/lib/blog/schema';
 import Analytics, { GoogleTagManagerNoScript } from '@/components/analytics/Analytics';
 import PageViews from '@/components/analytics/PageViews';
 import CookieConsent from '@/components/analytics/CookieConsent';
+import ClickTracker from '@/components/analytics/ClickTracker';
 import './globals.css';
 
 const display = Plus_Jakarta_Sans({
@@ -161,6 +162,9 @@ export default function RootLayout({ children }) {
         <Suspense fallback={null}>
           <PageViews />
         </Suspense>
+        {/* One delegated listener for every link on the site, so the CTAs and
+            service pages stay server components. */}
+        <ClickTracker />
         <CookieConsent />
         <script
           type="application/ld+json"
