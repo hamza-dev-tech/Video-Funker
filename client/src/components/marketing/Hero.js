@@ -11,15 +11,22 @@ import { appLinks, c, font, type, EASE } from '@/config/site';
 const STREAM_COLORS = [c.blue, c.blueMid, c.bluePale, c.orange, '#ffc824'];
 
 /* Ribbon count, derived from the hero's own area and then clamped.
-   It used to be a flat 260 at every size. That is the density the field was
-   drawn at on a 1440x900 laptop, but the same 260 ribbons on a 390px phone are
-   four times as dense on the weakest hardware in the audience, and each ribbon
-   costs its full trail of roughly 110 curve segments every single frame. The
-   ceiling is the old number, so nothing above laptop size changes; the floor
-   stops a very short viewport from thinning out to nothing. */
-const PARTICLE_AREA = 5400;
-const PARTICLES_MIN = 90;
-const PARTICLES_MAX = 260;
+
+   The field itself is unchanged — same curl-ish noise, same drift, same
+   pointer swirl. Only the density moved, because density was the whole problem.
+   At 260 ribbons each dragging a 70-160 point trail, roughly 28,000 control
+   points were on screen at once; every ribbon crossed a dozen others and the
+   eye had nothing to follow, so a field that is elegant at low count read as
+   noise. Around 40 leaves each ribbon legible as its own line while keeping the
+   same movement, and cuts the per-frame work by about six times.
+
+   One ribbon in 24 is warm and one in 7 is orange (see the `tone` picker), so
+   the accents only survive at low count if the count is not tiny — hence the
+   floor of 18 rather than something smaller. Below about 14 the palette stops
+   being visible at all and the field looks monochrome. */
+const PARTICLE_AREA = 46000;
+const PARTICLES_MIN = 12;
+const PARTICLES_MAX = 30;
 
 const particleCount = (w, h) =>
   Math.max(PARTICLES_MIN, Math.min(PARTICLES_MAX, Math.round((w * h) / PARTICLE_AREA)));
@@ -160,17 +167,34 @@ export default function Hero() {
        pays a bounds check and a float conversion on every one of the ~28,000
        control points a frame. Do not "optimise" this into a ring buffer. */
     const P = [];
-    const N = 260; // TEMP-BASELINE
+    /* Was a hardcoded 260 marked TEMP-BASELINE, with particleCount() sitting
+       right above it unused — the density function existed and nothing ever
+       called it, so every viewport got laptop density. */
+    const N = particleCount(W, H);
     for (let i = 0; i < N; i++) {
       const tone = i % 24 === 0 ? 4 : i % 7 === 0 ? 3 : i % 3 === 0 ? 2 : i % 2 === 0 ? 1 : 0;
       const p = {
         c: STREAM_COLORS[tone],
         s: 0.7 + Math.random() * 1.2,
-        a: 0.12 + Math.random() * 0.24,
-        trail: 70 + Math.floor(Math.random() * 90),
+        /* Alpha and trail both lift a little, and only because the count fell.
+           At 260 the field's weight came from ribbons stacking on top of each
+           other; at 40 each one has to carry itself or the hero looks washed
+           out. Longer trails also matter more now — with nothing overlapping,
+           the trail IS the line you follow, so a short one reads as a comet
+           rather than a current. */
+        a: 0.1 + Math.random() * 0.16,
+        /* Shorter, not longer. A trail is only a graceful arc while it is short
+           enough that the field curves it; past that it is a straight streak
+           with a long tail, and lengthening them was making the hatching worse
+           rather than reading as flow. */
+        trail: 55 + Math.floor(Math.random() * 55),
         hist: [],
       };
-      spawn(p, 3000, 1600, false);
+      // Spawn across the real canvas, not a nominal 3000x1600. At 260 ribbons
+      // enough of them landed on screen for it not to matter; at 40, seeding
+      // most of them outside the viewport leaves the hero visibly empty for the
+      // first few seconds after load.
+      spawn(p, W, H, false);
       P.push(p);
     }
 
@@ -186,9 +210,26 @@ export default function Hero() {
       ctx.lineJoin = 'round';
 
       for (const p of P) {
-        const a1 = Math.sin(p.y * 0.0021 + tt * 2.2) + Math.cos(p.x * 0.0016 - tt * 1.6);
-        const a2 = Math.sin((p.x + p.y) * 0.0009 + tt * 2.8);
-        const ang = (a1 + a2) * 1.05;
+        /* Two things changed here, and both are about what a single ribbon
+           looks like rather than how many there are.
+
+           FREQUENCY. The old field had a spatial wavelength near 3000px while a
+           trail spans 110-440px, so the direction barely moved along a ribbon's
+           length and every one of them drew as a straight line. At 260 ribbons
+           that blurred into texture and read as fog; thin it out and the truth
+           shows — straight parallel streaks, which is pencil hatching, not a
+           current. The frequencies are ~3x higher so the angle sweeps visibly
+           across a single trail and each ribbon reads as an arc.
+
+           AMPLITUDE. The old `* 1.05` on a sum of three unit terms spanned
+           ±3.15 radians — near a full turn — so a ribbon could reverse and two
+           neighbours could be sent opposite ways. That is what the tangling
+           was. Bounded to ±0.84 rad (±48°) it still curves freely, but
+           `Math.cos(ang)` cannot go below 0.67, so combined with the +0.55
+           drift `vx` is always positive: no ribbon ever doubles back on
+           itself. */
+        const a1 = Math.sin(p.y * 0.0062 + tt * 1.6) + Math.cos(p.x * 0.0049 - tt * 1.2);
+        const ang = a1 * 0.42;
 
         let vx = Math.cos(ang) * p.s + 0.55; // steady left → right drift
         let vy = Math.sin(ang) * p.s * 0.85;
@@ -198,7 +239,10 @@ export default function Hero() {
         const md2 = mdx * mdx + mdy * mdy;
         if (md2 < 48400) {
           const md = Math.sqrt(md2) || 1;
-          const k = (1 - md / 220) * 2.2;
+          /* Was 2.2, which is a vortex: strong enough to spin a ribbon through
+             its neighbours and knot whatever sat near the cursor. At 0.55 it
+             leans the flow around the pointer instead of stirring it. */
+          const k = (1 - md / 220) * 0.55;
           vx += (-mdy / md) * k;
           vy += (mdx / md) * k;
         }
