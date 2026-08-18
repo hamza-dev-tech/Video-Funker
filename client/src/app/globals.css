@@ -776,13 +776,57 @@ img {
   position: relative;
   height: 320vh;
 }
+/* Once a card has been clicked the runway has no job left — the reader is
+   choosing steps, not scrolling through them — and 2.2 screens of travel
+   between this section and the next is just a toll. So the section shrinks to
+   the screen it is already showing. Set by the component, one way per page
+   view. */
+.vf-how-picked {
+  height: 100vh;
+}
+/* Exactly one screen, not "at least" one: the stage below is the flexible
+   part, so whatever the heading and the cards do not use is what the
+   screenshot gets. A pane taller than the window would put the bottom of the
+   shot under the fold, and reaching it costs a scroll — which is this
+   section's own step navigation. */
 .vf-how-inner {
   position: sticky;
   top: 0;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+}
+.vf-how-stage-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  /* The frame is sized from its height, so cap the height at what the ratio
+     asks for at full content width. Without this a very tall window hands the
+     stage more height than it can turn into width, and `max-width` then
+     crops the shot instead of growing it. 1584 / 2794 = 0.567. */
+  max-height: calc((min(1280px, 100vw) - 96px) * 0.567);
 }
 .vf-step-shot {
   display: none;
+}
+
+/* Short windows — laptops at 1366×768, a browser carrying three toolbars —
+   leave the stage very little once the section's own spacing is spent on a
+   pane that is only 100vh tall. Buy some of it back from the spacing rather
+   than from the screenshot. The section's values are inline, hence the weight.
+   The top padding only comes down to 100px: the nav is fixed and its pill ends
+   at 94px, so anything less puts the heading under it. */
+@media (min-width: 901px) and (max-height: 820px) {
+  .vf-how-inner {
+    padding-top: 100px !important;
+    padding-bottom: 24px !important;
+  }
+  .vf-how .vf-how-head {
+    margin-bottom: 22px !important;
+  }
+  .vf-how .vf-steps {
+    margin-bottom: 16px !important;
+  }
 }
 
 @media (max-width: 900px) {
@@ -791,7 +835,9 @@ img {
   }
   .vf-how-inner {
     position: static;
+    height: auto;
     min-height: 0;
+    overflow: visible;
   }
   .vf-how-stage-wrap,
   .vf-how-dots {

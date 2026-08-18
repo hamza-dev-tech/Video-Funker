@@ -9,7 +9,31 @@ import { c, font, space, type } from '@/config/site';
 /**
  * A tall section with a sticky stage: scrolling through it walks the four
  * steps, crossfading a real product screenshot for each one. The cards are
- * also clickable, which scrolls to the matching slice.
+ * also clickable, which pins the step the reader asked for.
+ *
+ * Two rules keep the click and the scroll story from fighting each other:
+ *
+ *   1. The stage always fits the pinned screen. The sticky pane is exactly
+ *      100vh and the stage flexes into whatever the heading and the cards
+ *      leave over, so a screenshot is never clipped and reading one never
+ *      costs a scroll. It used to be capped at 58vh regardless of how much
+ *      sat above it, so on a normal laptop the bottom of the shot fell under
+ *      the fold and the only way to see it was to scroll.
+ *   2. A click ends the scroll story. Scrolling is this section's own
+ *      navigation, so scrolling down to look at a shot also walked the
+ *      selection forward — the reader who picked step 1 arrived at step 4
+ *      with a different image in front of them. So the first click takes the
+ *      runway away: the section collapses to the one screen it is already
+ *      showing, the scroll listener comes off, and what is left is a plain
+ *      panel of four tabs. The picked step stays picked, and the next scroll
+ *      goes to the next section instead of grinding through 2.2 screens of
+ *      travel the reader has already opted out of.
+ *
+ * Collapsing mid-section is invisible: inside the runway the pane is stuck to
+ * the top of the window, which is exactly where the section's own top lands
+ * once the runway is gone, so scrolling to it moves nothing on screen. It is
+ * a one-way switch — a reader who has taken the wheel keeps it for the rest
+ * of the page, rather than having the section start driving again behind them.
  *
  * Below 900px that whole mechanism is switched off in CSS. At phone width the
  * sticky stage rendered the screenshot at 335×191px — these are dense product
@@ -28,8 +52,12 @@ import { c, font, space, type } from '@/config/site';
 export default function HowItWorks() {
   const wrap = useRef(null);
   const [active, setActive] = useState(0);
+  // The reader has taken the wheel: the runway is gone and the cards are the
+  // only thing that changes the stage.
+  const [picked, setPicked] = useState(false);
 
   useEffect(() => {
+    if (picked) return undefined; // no runway left to read, and nothing to drive
     const onScroll = () => {
       const el = wrap.current;
       if (!el) return;
@@ -44,19 +72,27 @@ export default function HowItWorks() {
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
     return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  }, [picked]);
 
   const goTo = (i) => {
     const el = wrap.current;
     if (!el) return;
-    const total = el.offsetHeight - window.innerHeight;
-    if (total <= 0) return; // compact layout — the card is already the content
+    // Compact layout — the card carries its own screenshot, so there is
+    // nothing to switch and no runway to take away.
+    if (!picked && el.offsetHeight - window.innerHeight <= 0) return;
+    setActive(i);
+    if (picked) return; // already a panel of tabs: just switch the shot
+    setPicked(true);
+    // Land on the section's own top. Inside the runway that is where the
+    // pinned pane already sits, so nothing moves; on the way in it brings the
+    // stage up whole. Either way the section is one screen from here, and the
+    // next scroll belongs to the next section.
     const top = el.getBoundingClientRect().top + window.scrollY;
-    window.scrollTo({ top: top + total * (i / steps.length + 0.02), behavior: 'smooth' });
+    window.scrollTo({ top, behavior: window.scrollY < top ? 'smooth' : 'auto' });
   };
 
   return (
-    <section id="how" ref={wrap} className="vf-how">
+    <section id="how" ref={wrap} className={picked ? 'vf-how vf-how-picked' : 'vf-how'}>
       <div
         className="vf-pad vf-how-inner"
         style={{
@@ -159,17 +195,24 @@ export default function HowItWorks() {
           ))}
         </div>
 
-        {/* The plain wrapper matters: as a direct flex item the framed stage
-            would have auto side margins, which stops it stretching — its width
-            collapses to its (absolutely positioned) content, and aspect-ratio
-            then resolves the height to zero. */}
+        {/* The wrapper earns its keep twice: as a direct flex item the framed
+            stage would have auto side margins, which stops it stretching — its
+            width collapses to its (absolutely positioned) content, and
+            aspect-ratio then resolves the height to zero. And it is the box
+            that claims the height left over on the pinned screen, which the
+            frame inside it then reads off as the one dimension it is sized
+            from. */}
         <div className="vf-how-stage-wrap">
           <div
             style={{
               position: 'relative',
+              // Height first, width from the ratio: the shot is as large as
+              // the pinned screen has room for and never a pixel taller, so
+              // seeing all of it never costs a scroll.
+              height: '100%',
+              width: 'auto',
+              maxWidth: '100%',
               aspectRatio: '2794 / 1584',
-              maxHeight: '58vh',
-              margin: '0 auto',
               borderRadius: 16,
               overflow: 'hidden',
               border: `1px solid ${c.line}`,
