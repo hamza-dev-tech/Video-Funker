@@ -9,9 +9,9 @@ const post = {
     'Feature pages answer what a product does. Buyers are deciding whether to trust the people behind it. Here is why founder-led video moves that decision, and when it does not.',
   excerpt:
     'Feature pages answer what your product does. Your buyer is deciding something else entirely. They are deciding whether the people behind it are worth a meeting.',
-  cover: '/art/process-script.png',
+  cover: '/art/cover-funnel-strategy.jpg',
   coverAlt:
-    'A script panel from the Video Funker workspace showing a founder’s talking points beside a video timeline',
+    'A video-first B2B sales funnel: problem-oriented teardown, face-to-face credibility, solution proof and a clear ask, beside 8 prospects qualified and an 18-day cycle time',
   category: 'strategy',
   tags: ['Founder-led marketing', 'B2B demand generation', 'Brand trust', 'LinkedIn'],
   author: 'elena',

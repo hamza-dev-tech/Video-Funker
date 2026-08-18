@@ -6,9 +6,9 @@ const post = {
     'LinkedIn does not rank video by views. It ranks by a golden-hour dwell test, then by who engaged, then by whether the post survives its second wave. Here is the sequence.',
   excerpt:
     'LinkedIn does not rank video by views. It runs a short dwell test, decides who you are for, and then mostly stops. Understanding the sequence changes what you post.',
-  cover: '/art/wall-analytics.png',
+  cover: '/art/cover-targeting-chart.jpg',
   coverAlt:
-    'An analytics panel showing watch-through and reply data for a set of LinkedIn video posts',
+    'A content targeting A/B test over 30 days: 7,120 views, 55 new followers, 389 profile views and 60 warm DMs, with target audience reach climbing above competitor overlap',
   category: 'distribution',
   tags: ['LinkedIn', 'Distribution', 'B2B demand generation', 'Analytics'],
   author: 'marcus',
