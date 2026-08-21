@@ -13,6 +13,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@produ
 import { Loader2, FileText, Film, MessageSquare, Search, RefreshCw, AlertTriangle, Send, Copy, Pencil, Linkedin, Image as ImageIcon, CheckCircle2, Circle, XCircle, Target } from "lucide-react";
 import { useToast } from "@product/hooks/use-toast";
 import { RegenerateAllDialog } from "@product/components/campaign/RegenerateAllDialog";
+import { ContentBriefWizard } from "@product/components/campaign/ContentBriefWizard";
+import type { CampaignBrief } from "@product/components/campaign/campaignAngles";
 import {
   fetchContent,
   generateContent,
@@ -143,7 +145,7 @@ export function ContentTab({ campaignId, hasIcp }: ContentTabProps) {
     }
   };
 
-  const handleGenerate = (overrideTopic?: string) =>
+  const handleGenerate = (overrideTopic?: string, brief?: CampaignBrief) =>
     requireVerifiedEmail(async () => {
       const useTopic = (overrideTopic ?? topic).trim();
       if (!useTopic) {
@@ -152,7 +154,11 @@ export function ContentTab({ campaignId, hasIcp }: ContentTabProps) {
       }
       setGenerating(true);
       try {
-        const data = await generateContent(campaignId, useTopic);
+        const data = await generateContent(
+          campaignId,
+          useTopic,
+          brief ? { angle: brief.angle, audience: brief.audience, outcome: brief.outcome } : undefined,
+        );
         setTopic(useTopic);
         setRegenAllOpen(false);
         setContent(data);
@@ -237,37 +243,19 @@ export function ContentTab({ campaignId, hasIcp }: ContentTabProps) {
   }
 
   if (!content) {
+    /*
+      A three-step brief, not a single text box.
+
+      The whole input surface for eight AI calls used to be one Input reading
+      "Enter topic" — typing `x` passed validation and started the run. The
+      wizard asks for the stance, the specifics, and shows what will be asked
+      for before anything is spent.
+    */
     return (
-      <div className="mx-auto w-full max-w-2xl px-8 py-12 space-y-6">
-        <div className="space-y-2.5 text-center">
-          <h3 className="font-display text-[24px] font-bold tracking-[-0.015em] text-foreground">
-            What is this campaign about?
-          </h3>
-          <p className="mx-auto max-w-[48ch] text-[15px] leading-relaxed text-muted-foreground">
-            One topic in. Out comes the research, an article, a video script,
-            captions, LinkedIn posts, outbound scripts and an image concept.
-          </p>
-        </div>
-        <div className="space-y-4">
-          <Input
-            placeholder="Enter topic (e.g., AI-powered sales automation for enterprise)"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
-          />
-          <Button onClick={() => handleGenerate()} disabled={generating} className="w-full gap-2">
-            {generating ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" /> Starting generation...
-              </>
-            ) : (
-              <>
-                <FileText className="w-4 h-4" /> Generate Content
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
+      <ContentBriefWizard
+        generating={generating}
+        onGenerate={(brief) => handleGenerate(brief.topic, brief)}
+      />
     );
   }
 

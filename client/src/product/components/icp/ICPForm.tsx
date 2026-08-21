@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@product/components/ui/button";
 import { Input } from "@product/components/ui/input";
 import { Label } from "@product/components/ui/label";
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { ICPData, fetchICPByCampaign, updateICPData, createOrUpdateICP } from "@product/lib/api";
 import { useToast } from "@product/hooks/use-toast";
+import { suggestionsFor } from "@product/components/icp/icpSuggestions";
 
 interface ICPFormProps {
   campaignId: string;
@@ -43,6 +44,50 @@ const CONTENT_TONE_OPTIONS = [
 const REGION_OPTIONS = [
   "North America", "Europe", "Asia Pacific", "Latin America", "Middle East", "Africa", "Global"
 ];
+
+/**
+ * Clickable starting points under a list field.
+ *
+ * The three fields that decide what every video says — roles, pain points,
+ * buying triggers — were empty boxes with one example in the placeholder.
+ * These are real options for the industry already chosen, so the answer to
+ * "what goes here?" is on screen rather than in the customer's head.
+ *
+ * Anything already added disappears from the row, so the suggestions shrink as
+ * the list fills instead of offering duplicates.
+ */
+function Suggestions({
+  options,
+  chosen,
+  onAdd,
+}: {
+  options: string[];
+  chosen: string[];
+  onAdd: (value: string) => void;
+}) {
+  const remaining = options.filter((o) => !chosen.includes(o));
+  if (remaining.length === 0) return null;
+
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        Common for this industry
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {remaining.map((o) => (
+          <button
+            key={o}
+            type="button"
+            onClick={() => onAdd(o)}
+            className="rounded-md border border-dashed border-border bg-transparent px-2.5 py-1 text-[12.5px] text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            + {o}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const DEFAULT_DATA: ICPData = {
   industry: null, companySize: null, roles: [], painPoints: [], buyingTriggers: [],
@@ -77,6 +122,10 @@ export function ICPForm({ campaignId, onSave, onDataChange, onSaveComplete }: IC
    * were off-screen too, so the customer was told something was wrong and given
    * no way to find out what.
    */
+  /* Recomputed when the industry changes, so picking "Healthcare" immediately
+     changes what the three list fields suggest. */
+  const suggestions = useMemo(() => suggestionsFor(formData.industry), [formData.industry]);
+
   const findMissing = (): string[] => {
     const errors: string[] = [];
     if (!formData.industry) errors.push("Industry is required");
@@ -298,6 +347,11 @@ export function ICPForm({ campaignId, onSave, onDataChange, onSaveComplete }: IC
                 </Badge>
               ))}
             </div>
+            <Suggestions
+              options={suggestions.roles}
+              chosen={formData.roles}
+              onAdd={(v) => addToList("roles", v, setNewRole)}
+            />
           </CardContent>
         </Card>
 
@@ -320,6 +374,11 @@ export function ICPForm({ campaignId, onSave, onDataChange, onSaveComplete }: IC
                 </Badge>
               ))}
             </div>
+            <Suggestions
+              options={suggestions.painPoints}
+              chosen={formData.painPoints}
+              onAdd={(v) => addToList("painPoints", v, setNewPainPoint)}
+            />
           </CardContent>
         </Card>
 

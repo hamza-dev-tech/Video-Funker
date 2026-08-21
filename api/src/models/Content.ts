@@ -27,6 +27,17 @@ export interface IContent extends Document {
   userId: mongoose.Types.ObjectId;
   campaignId: mongoose.Types.ObjectId;
   topic: string;
+  /*
+    The server-composed brief the prompts actually consume.
+
+    `topic` stays exactly what the customer typed, because that is what the
+    screen shows them. This is topic + angle + audience + intended outcome +
+    the standing requirements, built in campaignBrief.ts. Keeping them apart
+    means the UI never has to display a 900-character instruction block as if
+    it were the campaign's name.
+  */
+  brief?: string;
+  briefSpec?: Record<string, any>;
   research: string;
   article: string;
   script: string;
@@ -68,6 +79,8 @@ const contentSchema = new mongoose.Schema(
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     campaignId: { type: mongoose.Schema.Types.ObjectId, ref: 'Campaign', required: true, index: true },
     topic: { type: String, required: true },
+    brief: { type: String, default: '' },
+    briefSpec: { type: mongoose.Schema.Types.Mixed, default: null },
     research: { type: String, default: '' },
     article: { type: String, default: '' },
     script: { type: String, default: '' },

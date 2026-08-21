@@ -99,7 +99,8 @@ export async function buildContexts(
       the topic at the top of that block is what carries the customer's actual
       subject into every later step rather than only the first one.
     */
-    topic && `Campaign Topic: ${topic}`,
+    topic && `Campaign Brief:
+${topic}`,
     campaign?.name && `Campaign: ${campaign.name}`,
     campaign?.description && `Campaign Description: ${campaign.description}`,
     d.contentTone && `Content Tone: ${d.contentTone}`,
@@ -226,7 +227,9 @@ function syncFile(campaignId: string, section: SectionKey, value: string) {
 /** Build the prompt variables from the latest stored content. */
 function varsFromContent(content: IContent, icpContext: string, campaignData: string): PromptVars {
   return {
-    topic: content.topic || '',
+    // The composed brief when there is one, the raw topic otherwise — so a
+    // record created before briefs existed still generates correctly.
+    topic: content.brief || content.topic || '',
     research: content.research || '',
     icp: icpContext,
     article: content.article || '',
@@ -319,7 +322,7 @@ export async function runAllSections(contentId: string, campaignId: string, user
   const failed = new Set<SectionKey>();
 
   try {
-    const { icpContext, campaignData } = await buildContexts(campaignId, userId, seed?.topic);
+    const { icpContext, campaignData } = await buildContexts(campaignId, userId, seed?.brief || seed?.topic);
 
     for (const step of STEPS) {
       /*
@@ -385,6 +388,6 @@ export async function runSingleSection(
   const step = STEPS.find((s) => s.key === sectionKey);
   if (!step) return;
   const content = await Content.findById(contentId);
-  const { icpContext, campaignData } = await buildContexts(campaignId, userId, content?.topic);
+  const { icpContext, campaignData } = await buildContexts(campaignId, userId, content?.brief || content?.topic);
   await runStep(contentId, step, icpContext, campaignData);
 }

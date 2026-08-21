@@ -7,6 +7,7 @@ import { BadRequestError, NotFoundError } from '../errors';
 import fs from 'fs';
 import path from 'path';
 import { assertCanRegenerateContent } from '../services/content-usage.service';
+import { buildCampaignBrief, validateBriefSpec } from '../utils/campaignBrief';
 import { runAllSections, runSingleSection } from '../services/content-generation.service';
 
 function ensureDir(dir: string) {
@@ -40,8 +41,22 @@ const allPending = () =>
  * all-pending, then kicks off sequential background generation (fire-and-forget).
  */
 export const generateContent = async (req: AuthRequest, res: Response): Promise<void> => {
-  const { campaignId, topic } = req.body;
+  const { campaignId, topic, angle, audience, outcome } = req.body;
   if (!campaignId || !topic) throw new BadRequestError('campaignId and topic are required');
+
+  /*
+    The brief is composed here, not in the browser.
+
+    Same rule as the presenter endpoint: the client sends structured choices and
+    the server turns them into the instruction the model receives, so nothing a
+    request can say changes the shape of what we ask for. A caller that sends
+    only a topic still works — buildCampaignBrief falls back to it.
+  */
+  const briefSpec = { angle, topic, audience, outcome };
+  const specProblem = validateBriefSpec(briefSpec);
+  if (specProblem) throw new BadRequestError(specProblem);
+
+  const brief = buildCampaignBrief(briefSpec);
 
   const icp = await ICPProfile.findOne({ campaignId, userId: req.user!._id });
   if (!icp) throw new NotFoundError('ICP not found for this campaign. Please create ICP first.');
@@ -60,6 +75,8 @@ export const generateContent = async (req: AuthRequest, res: Response): Promise<
     { campaignId, userId: req.user!._id },
     {
       topic,
+      brief,
+      briefSpec,
       research: '',
       article: '',
       script: '',

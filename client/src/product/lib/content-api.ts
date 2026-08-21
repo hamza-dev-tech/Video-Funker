@@ -107,8 +107,20 @@ export async function fetchContent(campaignId: string): Promise<ContentData> {
   return apiGet<ContentData>(`/content/${campaignId}`);
 }
 
-export async function generateContent(campaignId: string, topic: string): Promise<ContentData> {
-  return apiPost<ContentData>('/content/generate', { campaignId, topic });
+/**
+ * Starts the eight-step generation.
+ *
+ * `brief` is optional so the existing call sites — the regenerate dialog, which
+ * only changes the topic — keep working unchanged. When it is present the
+ * server composes the campaign brief from it, exactly as the presenter endpoint
+ * composes a prompt from a spec, rather than trusting anything built here.
+ */
+export async function generateContent(
+  campaignId: string,
+  topic: string,
+  brief?: { angle?: string; audience?: string; outcome?: string },
+): Promise<ContentData> {
+  return apiPost<ContentData>('/content/generate', { campaignId, topic, ...brief });
 }
 
 export async function updateScript(campaignId: string, script: string): Promise<ContentData> {
