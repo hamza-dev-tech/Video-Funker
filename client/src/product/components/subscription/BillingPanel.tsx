@@ -28,14 +28,14 @@ function CampaignUsageCard() {
   return (
     <div className="rounded-[14px] border border-border/70 bg-card p-6 space-y-2">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-[14px] text-muted-foreground">
           Campaign credits ({windowLabel})
         </p>
         <p className="font-display text-lg font-bold text-foreground">
           {used}/{limit}
         </p>
       </div>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-[14px] text-muted-foreground">
         {remaining > 0
           ? `${remaining} campaign${remaining === 1 ? "" : "s"} remaining.`
           : "No campaigns remaining."}
@@ -107,7 +107,7 @@ export function BillingPanel({ showChangePlan = true }: BillingPanelProps) {
 
   if (isError) {
     return (
-      <div className="flex items-center justify-center gap-2 rounded-[14px] border border-destructive/30 bg-destructive/[0.06] p-4 text-sm text-destructive">
+      <div className="flex items-center justify-center gap-2 rounded-[14px] border border-destructive/30 bg-destructive/[0.06] p-4 text-[14px] text-destructive">
         <XCircle className="h-4 w-4" />
         Could not load your subscription.
         <Button variant="ghost" size="sm" onClick={refetch}>
@@ -132,7 +132,7 @@ export function BillingPanel({ showChangePlan = true }: BillingPanelProps) {
           <h3 className="font-display text-lg font-semibold text-foreground">
             No active plan
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[14px] text-muted-foreground">
             Subscribe to unlock the full Video Funker experience.
           </p>
           <Button asChild>
@@ -152,7 +152,7 @@ export function BillingPanel({ showChangePlan = true }: BillingPanelProps) {
       <div className="rounded-[14px] border border-border/70 bg-card p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">Current plan</p>
+            <p className="text-[14px] text-muted-foreground">Current plan</p>
             <p className="font-display text-xl font-bold text-foreground">
               {subscription?.planName ?? "—"}
             </p>
@@ -161,7 +161,7 @@ export function BillingPanel({ showChangePlan = true }: BillingPanelProps) {
         </div>
 
         {renewDate && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[14px] text-muted-foreground">
             {willCancel ? "Access ends on" : "Renews on"}{" "}
             <span className="font-medium text-foreground">{renewDate}</span>
           </p>
@@ -169,7 +169,7 @@ export function BillingPanel({ showChangePlan = true }: BillingPanelProps) {
 
         {/* Everything below was already being fetched and never shown. The
             page's own subtitle promises "when it renews". */}
-        <dl className="grid gap-x-6 gap-y-2 border-t border-border/70 pt-4 text-sm sm:grid-cols-2">
+        <dl className="grid gap-x-6 gap-y-2 border-t border-border/70 pt-4 text-[14px] sm:grid-cols-2">
           {subscription?.billingInterval && (
             <div className="flex justify-between gap-3 sm:block">
               <dt className="text-muted-foreground">Billed</dt>
@@ -189,7 +189,7 @@ export function BillingPanel({ showChangePlan = true }: BillingPanelProps) {
         {paymentFailed && (
           <div className="flex gap-2.5 rounded-xl border border-destructive/25 bg-destructive/[0.06] p-3.5">
             <AlertTriangle className="mt-px h-4 w-4 flex-none text-destructive" strokeWidth={2} />
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2 text-[14px]">
               <p className="font-medium text-destructive">Your last payment failed</p>
               <p className="text-foreground/80">
                 Update your card to keep your plan. Your access continues
@@ -203,7 +203,7 @@ export function BillingPanel({ showChangePlan = true }: BillingPanelProps) {
         )}
 
         {willCancel && (
-          <div className="rounded-xl border border-destructive/25 bg-destructive/[0.06] p-3 text-sm text-destructive">
+          <div className="rounded-xl border border-destructive/25 bg-destructive/[0.06] p-3 text-[14px] text-destructive">
             Your subscription is scheduled to cancel at the end of the period.
           </div>
         )}

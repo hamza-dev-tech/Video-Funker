@@ -35,7 +35,7 @@ export function VideoLibrary({
           <h2 className="text-lg font-semibold text-foreground">
             Generated Videos{videos.length > 0 ? ` (${videos.length})` : ""}
           </h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="mt-0.5 text-[14px] text-muted-foreground">
             Your video library for this campaign.
           </p>
         </div>
@@ -50,10 +50,10 @@ export function VideoLibrary({
             <Film className="w-7 h-7 text-muted-foreground" />
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium text-foreground">
+            <p className="text-[14.5px] font-medium text-foreground">
               No videos generated yet.
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-[14px] text-muted-foreground">
               Start by creating your first AI video.
             </p>
           </div>

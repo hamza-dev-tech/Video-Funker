@@ -33,7 +33,7 @@ export function RequireSubscription({ children, fallback }: RequireSubscriptionP
       </div>
       <div>
         <h3 className="font-display text-lg font-semibold text-foreground">Premium feature</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-[14px] text-muted-foreground">
           Subscribe to unlock this feature.
         </p>
       </div>

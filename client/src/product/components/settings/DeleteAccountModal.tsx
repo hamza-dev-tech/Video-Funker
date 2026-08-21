@@ -146,10 +146,10 @@ export function DeleteAccountModal({
                 You are about to permanently delete your account.
               </p>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-[14px] text-muted-foreground">
               The following will be permanently removed:
             </p>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[14px]">
               {DATA_TYPES.map((d) => (
                 <li key={d} className="flex items-center gap-2 text-foreground">
                   <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
@@ -157,7 +157,7 @@ export function DeleteAccountModal({
                 </li>
               ))}
             </ul>
-            <p className="text-sm font-semibold text-destructive">
+            <p className="text-[14.5px] font-semibold text-destructive">
               This action cannot be undone.
             </p>
           </div>
@@ -165,7 +165,7 @@ export function DeleteAccountModal({
       case 2:
         return (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-[14px] text-muted-foreground">
               Please tell us why you're leaving (required).
             </p>
             <RadioGroup value={reason} onValueChange={setReason} className="space-y-1">
@@ -231,7 +231,7 @@ export function DeleteAccountModal({
       case 5:
         return (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-[14px] text-muted-foreground">
               For your security, verify the code sent to{" "}
               <span className="font-medium text-foreground">{email}</span>.
             </p>

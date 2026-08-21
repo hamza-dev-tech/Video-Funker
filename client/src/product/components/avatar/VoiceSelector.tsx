@@ -97,7 +97,7 @@ export function VoiceSelector({ selectedVoiceId, onSelect }: VoiceSelectorProps)
   }
 
   if (error) {
-    return <p className="text-sm text-destructive py-6 text-center">{error}</p>;
+    return <p className="py-6 text-center text-[14px] text-destructive">{error}</p>;
   }
 
   return (
@@ -143,7 +143,7 @@ export function VoiceSelector({ selectedVoiceId, onSelect }: VoiceSelectorProps)
       <ScrollArea className="h-72 rounded-md border border-border">
         <div className="divide-y divide-border">
           {filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
+            <p className="py-8 text-center text-[14px] text-muted-foreground">
               No voices match your filters.
             </p>
           ) : (
@@ -160,11 +160,11 @@ export function VoiceSelector({ selectedVoiceId, onSelect }: VoiceSelectorProps)
                   )}
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate flex items-center gap-2">
+                    <p className="flex items-center gap-2 truncate text-[14.5px] font-medium text-foreground">
                       {voice.name}
                       {isSelected && <Check className="w-3.5 h-3.5 text-primary" />}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[12.5px] text-muted-foreground">
                       {voice.language} · {voice.gender}
                     </p>
                   </div>

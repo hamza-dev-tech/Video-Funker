@@ -102,7 +102,7 @@ export function VideoPlayerModal({
         )}
 
         <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex items-center gap-3 text-[14px] text-muted-foreground">
             {video?.duration ? (
               <span className="flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5" />

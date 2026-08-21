@@ -44,7 +44,36 @@ const ALLOWED_ETHNICITIES = [
 ];
 /** Joins the spoken-script instruction block below. */
 const LINE_BREAK = '\n';
+/**
+ * Orientations for AVATAR IMAGE generation — POST /v3/avatars.
+ *
+ * Not the same vocabulary as video rendering. See VIDEO_ORIENTATION below;
+ * confusing the two returns "Input should be 'landscape' or 'portrait'" from
+ * HeyGen and the render never starts.
+ */
 const ALLOWED_ORIENTATIONS = ['square', 'horizontal', 'vertical'];
+
+/**
+ * Orientations for VIDEO rendering — POST /v3/video-agents.
+ *
+ * HeyGen accepts only these two here. An avatar carries the shape it was
+ * generated for in its presenterSpec, using the image vocabulary above, so it
+ * has to be translated rather than passed through.
+ *
+ * A square avatar maps to portrait deliberately: the product is aimed at
+ * LinkedIn and Reels, so vertical is the shape its videos are watched in, and
+ * a 1:1 subject sits comfortably inside it.
+ */
+const VIDEO_ORIENTATIONS = ['landscape', 'portrait'] as const;
+
+const VIDEO_ORIENTATION: Record<string, (typeof VIDEO_ORIENTATIONS)[number]> = {
+  vertical: 'portrait',
+  square: 'portrait',
+  horizontal: 'landscape',
+  // Already in the video vocabulary — accepted so callers may pass either.
+  portrait: 'portrait',
+  landscape: 'landscape',
+};
 const ALLOWED_POSES = ['half_body', 'close_up', 'full_body'];
 const ALLOWED_STYLES = ['Realistic', 'Pixar', 'Cinematic', 'Vintage', 'Noir', 'Cyberpunk', 'Unspecified'];
 
@@ -286,16 +315,20 @@ export const generateHeygenVideoService = async ({
 
 
   /*
-    Follow the presenter, do not force 16:9.
+    Follow the presenter, do not force 16:9 — but in this endpoint's own words.
 
-    'landscape' was hard-coded here — and it is not even one of the three values
-    this file accepts elsewhere (square, horizontal, vertical). Five of the six
-    presenter recipes are vertical, and one is labelled "9:16 — the LinkedIn and
-    Reels shape", so a customer followed our own recommendation, got a presenter
-    framed with headroom for a phone feed, and the render cropped it into the one
-    shape their channel does not want. They found out after the credit was spent.
+    'landscape' was hard-coded here. Five of the six presenter recipes are
+    vertical, and one is labelled "9:16 — the LinkedIn and Reels shape", so a
+    customer followed our own recommendation, got a presenter framed for a phone
+    feed, and the render cropped it to the one shape their channel does not
+    want — discovered only after the credit was spent.
+
+    The translation matters: presenterSpec stores the IMAGE orientation
+    (square / horizontal / vertical) and this endpoint accepts only
+    landscape / portrait. Passing the image value straight through is rejected
+    with "Input should be 'landscape' or 'portrait'".
   */
-  const shape = ALLOWED_ORIENTATIONS.includes(String(orientation)) ? String(orientation) : 'vertical';
+  const shape = VIDEO_ORIENTATION[String(orientation)] ?? 'landscape';
 
   /*
     Say what the script is for.

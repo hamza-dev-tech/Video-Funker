@@ -66,13 +66,13 @@ export function ModuleCard({
 
       {stats && (
         <div className="flex items-center justify-between pt-4 border-t border-border">
-          <span className="text-xs text-muted-foreground">{stats.label}</span>
-          <span className="text-sm font-semibold text-foreground">{stats.value}</span>
+          <span className="text-[12.5px] text-muted-foreground">{stats.label}</span>
+          <span className="text-[14.5px] font-semibold text-foreground">{stats.value}</span>
         </div>
       )}
 
       <div className="flex items-center gap-2 mt-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-        <span className="text-sm font-medium">Open Module</span>
+        <span className="text-[14.5px] font-medium">Open Module</span>
         <ArrowRight className="w-4 h-4" />
       </div>
     </Link>

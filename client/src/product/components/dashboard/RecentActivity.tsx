@@ -48,9 +48,9 @@ export function RecentActivity({ activities }: RecentActivityProps) {
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-medium text-foreground truncate">{activity.title}</h4>
-                <p className="text-sm text-muted-foreground truncate">{activity.description}</p>
+                <p className="truncate text-[14px] text-muted-foreground">{activity.description}</p>
               </div>
-              <span className="text-xs text-muted-foreground whitespace-nowrap">{activity.time}</span>
+              <span className="whitespace-nowrap text-[12.5px] text-muted-foreground">{activity.time}</span>
             </div>
           );
         })}

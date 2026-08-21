@@ -157,7 +157,7 @@ export function AvatarPreviewModal({
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
                   <User className="h-9 w-9" />
-                  <span className="px-2 text-center text-xs">
+                  <span className="px-2 text-center text-[12.5px]">
                     No preview available
                   </span>
                 </div>

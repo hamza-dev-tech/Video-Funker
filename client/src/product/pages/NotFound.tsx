@@ -27,7 +27,7 @@ const NotFound = () => {
           marketing site is a different route family with its own stylesheet;
           routing to it through react-router would find nothing.
         */}
-        <p className="mt-3 text-sm text-muted-foreground">
+        <p className="mt-3 text-[14px] text-muted-foreground">
           or go to the{" "}
           <a href="/" className="underline hover:text-foreground">
             Video Funker site

@@ -142,7 +142,7 @@ export function CreateVoiceCloneModal({
               maxLength={100}
               disabled={submitting}
             />
-            <p className="text-xs text-muted-foreground">{voiceName.trim().length}/100</p>
+            <p className="text-[12.5px] text-muted-foreground">{voiceName.trim().length}/100</p>
           </div>
 
           {/* Language */}
@@ -176,7 +176,7 @@ export function CreateVoiceCloneModal({
             />
             {file ? (
               <div className="flex items-center justify-between gap-2 rounded-xl border border-border/70 bg-secondary/50 px-3.5 py-2.5">
-                <span className="flex items-center gap-2 text-sm text-foreground truncate">
+                <span className="flex items-center gap-2 truncate text-[14px] text-foreground">
                   <FileAudio className="w-4 h-4 shrink-0 text-primary" />
                   <span className="truncate">{file.name}</span>
                 </span>
@@ -228,7 +228,7 @@ export function CreateVoiceCloneModal({
               disabled={submitting}
               className="mt-0.5"
             />
-            <Label htmlFor="consent" className="font-normal cursor-pointer text-sm leading-snug">
+            <Label htmlFor="consent" className="cursor-pointer text-[14px] font-normal leading-snug">
               I confirm that I own this voice or have permission to clone it.
             </Label>
           </div>

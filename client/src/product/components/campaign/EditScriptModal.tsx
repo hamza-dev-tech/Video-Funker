@@ -95,7 +95,7 @@ export function EditScriptModal({ open, onOpenChange, campaignId, script, onSave
             placeholder="What the presenter says, word for word"
             disabled={saving}
           />
-          <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center justify-between text-[12.5px]">
             <span className={cn("text-muted-foreground", trimmed.length === 0 && "text-destructive")}>
               {trimmed.length === 0 ? "Script cannot be empty" : ""}
             </span>

@@ -31,7 +31,7 @@ export function StepScript({ script, onChange }: StepScriptProps) {
           <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
             <Film className="w-5 h-5 text-primary" /> Video Script
           </h3>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="mt-0.5 text-[14px] text-muted-foreground">
             Review and edit the script your avatar will speak.
           </p>
         </div>
@@ -54,7 +54,7 @@ export function StepScript({ script, onChange }: StepScriptProps) {
         className="resize-none min-h-[280px]"
       />
 
-      <div className="flex justify-end text-xs text-muted-foreground">
+      <div className="flex justify-end text-[12.5px] text-muted-foreground">
         {script.length} characters
       </div>
     </div>

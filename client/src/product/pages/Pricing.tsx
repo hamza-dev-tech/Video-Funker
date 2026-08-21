@@ -151,7 +151,7 @@ export default function Pricing() {
         )}
 
         {hasError && (
-          <div className="flex items-center justify-center gap-2 rounded-[14px] border border-destructive/30 bg-destructive/[0.06] p-4 text-sm text-destructive">
+          <div className="flex items-center justify-center gap-2 rounded-[14px] border border-destructive/30 bg-destructive/[0.06] p-4 text-[14px] text-destructive">
             <XCircle className="h-4 w-4" />
             Could not load plans or subscription status.
             <Button variant="ghost" size="sm" onClick={refetch}>

@@ -56,7 +56,7 @@ export function WorkflowTimeline({ steps }: WorkflowTimelineProps) {
               >
                 {step.title}
               </h4>
-              <p className="text-sm text-muted-foreground">{step.description}</p>
+              <p className="text-[14px] text-muted-foreground">{step.description}</p>
             </div>
           </div>
         ))}

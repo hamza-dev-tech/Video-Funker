@@ -34,7 +34,7 @@ export function StepAvatar({
           <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
             <User className="w-5 h-5 text-primary" /> Select an Avatar
           </h3>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="mt-0.5 text-[14px] text-muted-foreground">
             Choose the avatar that will present your video.
           </p>
         </div>
@@ -42,7 +42,7 @@ export function StepAvatar({
           <button
             type="button"
             onClick={onClear}
-            className="text-xs text-muted-foreground hover:text-foreground"
+            className="text-[12.5px] text-muted-foreground hover:text-foreground"
           >
             Clear selection
           </button>
@@ -50,16 +50,16 @@ export function StepAvatar({
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground py-10 justify-center">
+        <div className="flex items-center justify-center gap-2 py-10 text-[14px] text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin" /> Loading avatars...
         </div>
       ) : error ? (
-        <div className="flex items-center gap-2 text-sm text-destructive border border-destructive/30 bg-destructive/5 rounded-md p-3">
+        <div className="flex items-center gap-2 text-[14px] text-destructive border border-destructive/30 bg-destructive/5 rounded-md p-3">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           <span className="truncate">{error}</span>
         </div>
       ) : avatars.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No avatars available.</p>
+        <p className="text-[14px] text-muted-foreground">No avatars available.</p>
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 max-h-[460px] overflow-y-auto pr-1">
@@ -144,7 +144,7 @@ export function StepAvatar({
                   </div>
                   <div className="p-2.5">
                     <p
-                      className="text-xs font-medium text-foreground truncate"
+                      className="truncate text-[12.5px] font-medium text-foreground"
                       title={a.name}
                     >
                       {a.name}

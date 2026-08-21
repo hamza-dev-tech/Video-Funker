@@ -96,7 +96,7 @@ export function StepVoice(props: StepVoiceProps) {
           <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
             <Mic className="w-5 h-5 text-primary" /> Select a Voice
           </h3>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="mt-0.5 text-[14px] text-muted-foreground">
             Pick a default voice or use one of your cloned voices.
           </p>
         </div>
@@ -104,7 +104,7 @@ export function StepVoice(props: StepVoiceProps) {
           <button
             type="button"
             onClick={onClearSelection}
-            className="text-xs text-muted-foreground hover:text-foreground"
+            className="text-[12.5px] text-muted-foreground hover:text-foreground"
           >
             Clear selection
           </button>
@@ -113,15 +113,15 @@ export function StepVoice(props: StepVoiceProps) {
 
       {/* Default voices */}
       <div>
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           Default Voices
         </p>
         {voicesLoading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground py-6 justify-center">
+          <div className="flex items-center justify-center gap-2 py-6 text-[14px] text-muted-foreground">
             <Loader2 className="w-4 h-4 animate-spin" /> Loading voices...
           </div>
         ) : voicesError ? (
-          <div className="flex items-center gap-2 text-sm text-destructive border border-destructive/30 bg-destructive/5 rounded-md p-3">
+          <div className="flex items-center gap-2 text-[14px] text-destructive border border-destructive/30 bg-destructive/5 rounded-md p-3">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span className="truncate">{voicesError}</span>
           </div>
@@ -154,7 +154,7 @@ export function StepVoice(props: StepVoiceProps) {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pr-1 content-start">
               {filteredVoices.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8 col-span-full">
+                <p className="col-span-full py-8 text-center text-[14px] text-muted-foreground">
                   No voices match your filters.
                 </p>
               ) : (
@@ -178,10 +178,10 @@ export function StepVoice(props: StepVoiceProps) {
                         </span>
                       )}
                       <div className="min-w-0 pr-6">
-                        <p className="text-sm font-semibold text-foreground truncate">
+                        <p className="truncate text-[14.5px] font-semibold text-foreground">
                           {voice.name}
                         </p>
-                        <p className="text-xs text-muted-foreground capitalize">
+                        <p className="text-[12.5px] capitalize text-muted-foreground">
                           {voice.gender} · {voice.language}
                         </p>
                       </div>
@@ -193,7 +193,7 @@ export function StepVoice(props: StepVoiceProps) {
                             e.stopPropagation();
                             onToggleVoicePreview(voice);
                           }}
-                          className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline w-fit"
+                          className="inline-flex w-fit items-center gap-1.5 text-[12.5px] font-medium text-primary hover:underline"
                         >
                           {playingVoiceId === voice.voice_id ? (
                             <Pause className="w-3.5 h-3.5" />
@@ -233,7 +233,7 @@ export function StepVoice(props: StepVoiceProps) {
       {/* My Cloned Voices */}
       <div className="pt-4 border-t border-border">
         <div className="flex items-center justify-between gap-2 mb-3">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             My Cloned Voices
           </p>
           <Button
@@ -248,11 +248,11 @@ export function StepVoice(props: StepVoiceProps) {
         </div>
 
         {clonesLoading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 justify-center">
+          <div className="flex items-center justify-center gap-2 py-4 text-[14px] text-muted-foreground">
             <Loader2 className="w-4 h-4 animate-spin" /> Loading voices...
           </div>
         ) : clones.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-3">
+          <p className="py-3 text-[14px] text-muted-foreground">
             No cloned voices yet. Create one to get started.
           </p>
         ) : (
@@ -272,10 +272,10 @@ export function StepVoice(props: StepVoiceProps) {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate">
+                      <p className="truncate text-[14.5px] font-semibold text-foreground">
                         {clone.voiceName}
                       </p>
-                      <p className="text-xs text-muted-foreground capitalize">
+                      <p className="text-[12.5px] capitalize text-muted-foreground">
                         {isReady
                           ? [clone.language, clone.gender]
                               .filter(Boolean)

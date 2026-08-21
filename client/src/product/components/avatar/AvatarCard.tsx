@@ -158,7 +158,7 @@ export function AvatarCard({
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
             <User className="h-9 w-9" strokeWidth={1.5} />
-            <span className="px-2 text-center text-xs">No preview yet</span>
+            <span className="px-2 text-center text-[12.5px]">No preview yet</span>
           </div>
         )}
         <LiveBadge
@@ -180,7 +180,7 @@ export function AvatarCard({
       {/* Body */}
       <div className="p-4 flex-1 flex flex-col gap-2">
         <p
-          className="line-clamp-2 text-sm font-semibold leading-snug text-foreground"
+          className="line-clamp-2 text-[14.5px] font-semibold leading-snug text-foreground"
           title={avatar.name}
         >
           {avatar.name}

@@ -47,13 +47,13 @@ export function SubscriptionStatusCard({ subscription }: SubscriptionStatusProps
         <SubscriptionStatusBadge subscription={subscription} />
       </div>
       {subscription.planName && (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-[14px] text-muted-foreground">
           {subscription.planName}
           {subscription.billingInterval ? ` · billed ${subscription.billingInterval}ly` : ""}
         </p>
       )}
       {date && (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-[14px] text-muted-foreground">
           {renewLabel} <span className="text-foreground font-medium">{date}</span>
         </p>
       )}

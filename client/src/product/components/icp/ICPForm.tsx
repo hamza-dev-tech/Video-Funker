@@ -401,6 +401,11 @@ export function ICPForm({ campaignId, onSave, onDataChange, onSaveComplete }: IC
                 </Badge>
               ))}
             </div>
+            <Suggestions
+              options={suggestions.buyingTriggers}
+              chosen={formData.buyingTriggers}
+              onAdd={(v) => addToList("buyingTriggers", v, setNewTrigger)}
+            />
           </CardContent>
         </Card>
 
@@ -476,7 +481,7 @@ export function ICPForm({ campaignId, onSave, onDataChange, onSaveComplete }: IC
             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Save ICP Profile
           </Button>
-          <p className="text-xs text-muted-foreground text-right max-w-md">
+          <p className="max-w-md text-right text-[12.5px] text-muted-foreground">
             Save ICP Profile stores your ICP data for this campaign. It does not generate an ICP document.
           </p>
         </div>

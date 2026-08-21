@@ -85,7 +85,7 @@ export function CampaignHeader() {
             </div>
           ) : loadError ? (
             <div className="space-y-2 px-2 py-3 text-center">
-              <p className="text-sm text-foreground">{loadError}</p>
+              <p className="text-[14.5px] text-foreground">{loadError}</p>
               <button
                 type="button"
                 onClick={(e) => {
@@ -98,7 +98,7 @@ export function CampaignHeader() {
               </button>
             </div>
           ) : campaigns.length === 0 ? (
-            <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+            <div className="px-2 py-4 text-center text-[14px] text-muted-foreground">
               No campaigns yet.
             </div>
           ) : (
