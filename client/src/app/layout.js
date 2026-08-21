@@ -6,9 +6,12 @@ import { site, SITE_URL } from '@/config/site';
 import { buildGraph, ldJson, siteGraph } from '@/lib/blog/schema';
 import Analytics, { GoogleTagManagerNoScript } from '@/components/analytics/Analytics';
 import PageViews from '@/components/analytics/PageViews';
-import CookieConsent from '@/components/analytics/CookieConsent';
 import ClickTracker from '@/components/analytics/ClickTracker';
-import './globals.css';
+// NOTE: globals.css is imported by (marketing)/layout.js and not-found.js, not here.
+// The product app under /app ships its own stylesheet (Tailwind + shadcn tokens),
+// and the marketing reset — `* { margin:0; padding:0 }`, `a:hover { opacity:.85 }` —
+// corrupts those components on contact. Keeping the two sheets in sibling route
+// groups is what stops them ever loading on the same document.
 
 const display = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -142,7 +145,10 @@ const jsonLd = buildGraph(...siteGraph['@graph'], appNode);
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable}`}>
+    <html
+      lang="en"
+      className={`${display.variable} ${body.variable}`}
+    >
       <head>
         {/* Consent defaults must execute before the container loads, so this
             sits in <head> rather than beside the rest of the body scripts. */}
@@ -165,7 +171,12 @@ export default function RootLayout({ children }) {
         {/* One delegated listener for every link on the site, so the CTAs and
             service pages stay server components. */}
         <ClickTracker />
-        <CookieConsent />
+        {/* CookieConsent is NOT here: it lives in (marketing)/layout.js.
+            Every class it uses is defined in globals.css, which the product
+            route group deliberately never loads — rendered from the root it
+            would appear on /app as unstyled text with two bare buttons,
+            dropped out of its fixed position and below the fold, where the
+            visitor could not answer it even if the product needed consent. */}
         <script
           type="application/ld+json"
           // ldJson, not JSON.stringify: it escapes `</script>` and the two raw

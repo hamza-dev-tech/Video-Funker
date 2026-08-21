@@ -34,14 +34,21 @@ const DESCRIPTION =
 
 export const metadata = {
   /**
-   * The brand is appended by hand rather than left to the root layout's
-   * `title.template`. A template applies to CHILD route segments, and
-   * app/page.js sits in the same segment as app/layout.js, so it is the one
-   * page on the site the template never reaches. Verified in the rendered
-   * HTML: with a bare string here the title shipped with no brand at all.
-   * 58 characters, inside what Google renders.
+   * `absolute`, so the root layout's `title.template` cannot reach this.
+   *
+   * The brand is appended by hand here, and this page used to be exempt from
+   * the template by accident: a template applies to CHILD segments only, and
+   * app/page.js sat in the same segment as app/layout.js. Moving the marketing
+   * routes into the `(marketing)` group added a segment between them — a route
+   * group is URL-transparent but it is still a node in the loader tree — so the
+   * template started applying and the homepage shipped
+   * "…for LinkedIn | Video Funker · Video Funker", 74 characters with the brand
+   * twice and the tail cut off in search results.
+   *
+   * `absolute` states the exemption instead of depending on how deep the file
+   * happens to sit. 58 characters, inside what Google renders.
    */
-  title: `${TITLE} | ${site.name}`,
+  title: { absolute: `${TITLE} | ${site.name}` },
   description: DESCRIPTION,
   alternates: { canonical: '/' },
   openGraph: {

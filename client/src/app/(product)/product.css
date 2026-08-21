@@ -1,0 +1,624 @@
+/* ============================================================
+   Video Funker — product app (/app)
+   Tailwind entry point for the React SPA mounted at /app.
+
+   Loaded ONLY by app/(product)/layout.js. The marketing site's
+   globals.css is loaded only by app/(marketing)/layout.js, and
+   the two must never meet: globals.css zeroes all margins and
+   padding with `*`, keeps box-sizing at content-box and fades
+   every anchor on hover, none of which shadcn/ui survives.
+
+   Typography is the marketing site's: Plus Jakarta Sans for
+   headings, Hanken Grotesk for text. The app used to run on
+   Inter and Space Grotesk, inherited from SalesLights, which
+   put a visible seam in the middle of the product — you signed
+   in on one company's typeface and landed in another's. Both
+   faces are already on <html> via next/font, so this costs no
+   extra download.
+   ============================================================ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 55% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 55% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 55% 20%;
+
+    --primary: 222 65% 34%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 217 50% 96%;
+    --secondary-foreground: 222 65% 34%;
+
+    --muted: 217 40% 95%;
+    --muted-foreground: 222 18% 48%;
+
+    --accent: 32 91% 54%;
+    --accent-foreground: 0 0% 100%;
+
+    --success: 142 71% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 222 47% 12%;
+
+    --destructive: 0 84% 58%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 217 35% 90%;
+    --input: 217 35% 90%;
+    --ring: 222 65% 34%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 25% 40%;
+    --sidebar-primary: 222 65% 34%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 50% 95%;
+    --sidebar-accent-foreground: 222 65% 34%;
+    --sidebar-border: 217 35% 90%;
+    --sidebar-ring: 222 65% 34%;
+
+    /* Custom tokens */
+    --gradient-primary: linear-gradient(135deg, hsl(222 65% 34%), hsl(32 91% 54%));
+    --gradient-glow: linear-gradient(180deg, hsl(222 65% 34% / 0.08), transparent);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(217 50% 99%));
+    --shadow-glow: 0 0 60px hsl(222 65% 34% / 0.12);
+    --shadow-card: 0 4px 24px hsl(222 47% 50% / 0.08);
+  }
+
+  .dark {
+    --background: 0 0% 100%;
+    --foreground: 222 55% 20%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: var(--font-body, 'Hanken Grotesk'), 'Segoe UI', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display, 'Plus Jakarta Sans'), 'Segoe UI', sans-serif;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50 rounded-xl;
+    box-shadow: var(--shadow-card);
+  }
+
+  .glow-border {
+    @apply relative;
+  }
+  
+  .glow-border::before {
+    content: '';
+    @apply absolute -inset-[1px] rounded-xl opacity-0 transition-opacity duration-300;
+    background: var(--gradient-primary);
+    z-index: -1;
+  }
+  
+  .glow-border:hover::before {
+    @apply opacity-100;
+  }
+
+  .text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .module-card {
+    @apply glass-card p-6 transition-all duration-300 hover:scale-[1.02] hover:border-primary/50 cursor-pointer;
+  }
+
+  .status-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .status-active {
+    @apply bg-success animate-pulse;
+  }
+
+  .status-pending {
+    @apply bg-warning;
+  }
+
+  .status-inactive {
+    @apply bg-muted-foreground/50;
+  }
+}
+
+@layer utilities {
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out forwards;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes glow {
+  from { box-shadow: 0 0 20px hsl(199 89% 48% / 0.2); }
+  to { box-shadow: 0 0 40px hsl(199 89% 48% / 0.4); }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-background;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/50;
+}
+
+/* The SPA owns the full viewport. The root layout's <body> carries no height
+   or background of its own on these routes — globals.css, which set both, is
+   deliberately not loaded here. */
+.vf-product {
+  min-height: 100vh;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+/* ============================================================
+   Sign-in screens (/app/auth)
+   The one place in the product that borrows the marketing
+   site's visual language: its two faces, its orange CTA, its
+   easing curve. Everything here is scoped under .vf-auth or a
+   .vf-auth- prefix so none of it reaches the workspace.
+   ============================================================ */
+
+.vf-auth {
+  /* The marketing site's easing curve, so a button here decelerates exactly
+     the way a button on the homepage does. */
+  --vf-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* The display face is Plus Jakarta Sans — the marketing site's, not the
+   product's Space Grotesk. Its variable is declared on <html> by the root
+   layout, so it is already available here and costs no extra download.
+   Deliberately applied to the sign-in headings ONLY: switching the whole
+   workspace's typography is a separate decision with a separate blast radius. */
+.vf-auth-display {
+  /* The fallback goes INSIDE var(), not after it.
+     `font-family: var(--x), 'Name', sans-serif` is invalid at computed-value
+     time whenever --x is undefined, and an invalid declaration is dropped
+     WHOLE — the sans-serif at the end never gets a chance. The element then
+     inherits from its parent, and with the same mistake made on `body` the
+     inheritance runs all the way to the document default, which is Times.
+     One missing variable turned the entire screen serif. */
+  font-family: var(--font-display, 'Plus Jakarta Sans'), 'Segoe UI', sans-serif;
+}
+
+/* ── Entrance ────────────────────────────────────────────────
+   One animation, staggered by inline animation-delay at each call site. The
+   lift is small and the fade is short: this should register as the page
+   arriving assembled, not as a sequence you have to sit through. */
+@keyframes vf-auth-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.vf-auth-in {
+  opacity: 0;
+  animation: vf-auth-in 0.62s var(--vf-ease) both;
+}
+
+/* Reduced motion removes the movement, not the content. `both` fill-mode means
+   an element whose animation never runs is stuck at opacity 0 — so the state
+   has to be reset explicitly, not just the animation cancelled. */
+@media (prefers-reduced-motion: reduce) {
+  .vf-auth-in {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+  .vf-auth-float,
+  .vf-auth-mark-bar {
+    animation: none;
+  }
+}
+
+/* ── The floating artefact card ─────────────────────────────── */
+@keyframes vf-auth-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+.vf-auth-float {
+  animation: vf-auth-float 7s ease-in-out infinite;
+  /* The entrance and the float are two animations on one element, so the
+     entrance is re-declared here with the float appended — a second
+     `animation` property would replace the first rather than add to it. */
+  animation: vf-auth-in 0.62s var(--vf-ease) both,
+    vf-auth-float 7s ease-in-out 1.2s infinite;
+}
+
+/* ── Headline highlighter ───────────────────────────────────── */
+@keyframes vf-auth-wipe {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.vf-auth-mark-bar {
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  bottom: 4px;
+  height: 10px;
+  border-radius: 3px;
+  background: #ff901b;
+  opacity: 0.9;
+  z-index: -1;
+  transform-origin: left center;
+  animation: vf-auth-wipe 0.7s var(--vf-ease) 0.85s both;
+}
+
+/* ── Inputs ─────────────────────────────────────────────────── */
+.vf-auth-input {
+  width: 100%;
+  height: 46px;
+  padding-left: 2.75rem;
+  padding-right: 0.9rem;
+  border-radius: 12px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  font-size: 15px;
+  transition: border-color 0.18s var(--vf-ease), box-shadow 0.18s var(--vf-ease),
+    background-color 0.18s var(--vf-ease);
+}
+
+.vf-auth-input::placeholder {
+  color: hsl(var(--muted-foreground));
+  opacity: 0.75;
+}
+
+.vf-auth-input:hover:not(:focus) {
+  border-color: hsl(var(--primary) / 0.35);
+}
+
+/* A ring rather than a heavier border, so the field does not shift by a pixel
+   when it takes focus. */
+.vf-auth-input:focus {
+  outline: none;
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 4px hsl(var(--primary) / 0.12);
+}
+
+.vf-auth-input-error {
+  border-color: hsl(var(--destructive));
+}
+
+.vf-auth-input-error:focus {
+  border-color: hsl(var(--destructive));
+  box-shadow: 0 0 0 4px hsl(var(--destructive) / 0.12);
+}
+
+/* Errors arrive after a submit, below a field the eye has already left, so
+   they get their own small entrance to pull attention back down. */
+@keyframes vf-auth-err {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.vf-auth-err {
+  animation: vf-auth-err 0.24s var(--vf-ease) both;
+}
+
+/* ── The primary action ─────────────────────────────────────── */
+.vf-auth-cta {
+  display: flex;
+  width: 100%;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 100px;
+  border: none;
+  background: #ff901b;
+  color: #2a1a04;
+  font-family: var(--font-body, 'Hanken Grotesk'), 'Segoe UI', sans-serif;
+  font-size: 15.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 24px -10px rgba(217, 107, 0, 0.7);
+  /* The same lift-and-press the marketing CTA uses. */
+  transition: transform 0.25s var(--vf-ease), box-shadow 0.25s var(--vf-ease),
+    filter 0.2s var(--vf-ease);
+}
+
+.vf-auth-cta:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 30px -12px rgba(217, 107, 0, 0.75);
+}
+
+.vf-auth-cta:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.vf-auth-cta:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 3px;
+}
+
+/* Not greyed out. A submitting button is busy, not unavailable, and draining
+   its colour reads as "this control stopped working". */
+.vf-auth-cta:disabled {
+  cursor: wait;
+  filter: saturate(0.85) brightness(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vf-auth-cta {
+    transition: box-shadow 0.25s;
+  }
+  .vf-auth-cta:hover:not(:disabled),
+  .vf-auth-cta:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* ── Inline links ───────────────────────────────────────────── */
+.vf-auth-link {
+  color: hsl(var(--primary));
+  font-weight: 600;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-underline-offset: 3px;
+  transition: color 0.15s var(--vf-ease);
+}
+
+.vf-auth-link:hover {
+  color: hsl(var(--primary) / 0.78);
+  text-decoration: underline;
+}
+
+.vf-auth-link:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* ── Reset-flow step markers ────────────────────────────────── */
+.vf-auth-step {
+  display: flex;
+  height: 24px;
+  width: 24px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background-color 0.25s var(--vf-ease), color 0.25s var(--vf-ease);
+}
+
+.vf-auth-step.is-done {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.vf-auth-step.is-now {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 0 0 4px hsl(var(--primary) / 0.14);
+}
+
+.vf-auth-step.is-next {
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+}
+
+/* Chrome paints its own pale blue over an autofilled field and ignores
+   `background`. The only lever is an inset shadow large enough to cover the
+   field, which is why this reads as a hack — it is the documented one. Without
+   it a returning visitor's saved email arrives in a blue box that matches
+   nothing else on the screen. */
+.vf-auth-input:-webkit-autofill,
+.vf-auth-input:-webkit-autofill:hover,
+.vf-auth-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 40px hsl(var(--card)) inset;
+  -webkit-text-fill-color: hsl(var(--foreground));
+  caret-color: hsl(var(--foreground));
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+.vf-auth-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 40px hsl(var(--card)) inset, 0 0 0 4px hsl(var(--primary) / 0.12);
+}
+
+/* ── The form card and its travelling rim ────────────────────
+   The form used to sit directly on the white panel, which left the border
+   animation nothing to happen on. It is a card now, and the card's edge
+   carries one bright segment travelling round it: the same ribbon language as
+   the panel opposite, wrapped around the thing you came here to use.
+
+   Restraint is the whole design here. A login is a transit screen — people
+   arrive wanting to leave — so a rim that pulses at full strength forever
+   competes with the fields and gets tiring by the tenth visit. At rest it sits
+   at 45% and takes eleven seconds a lap; it comes up to full only when the
+   form has focus, so the motion answers attention instead of demanding it. */
+
+.vf-auth-formside {
+  /* A whisper of the brand's panel tint, so a white card reads as a card.
+     Two whites would leave the rim floating on nothing. */
+  background: hsl(var(--secondary) / 0.5);
+}
+
+.vf-auth-rim {
+  position: relative;
+  border-radius: 21px;
+  /* The rim's thickness. The conic gradient below fills this padding and the
+     card covers everything inside it. */
+  padding: 1.5px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px hsl(222 47% 30% / 0.04), 0 18px 40px -20px hsl(222 47% 30% / 0.18);
+}
+
+.vf-auth-rim::before {
+  content: '';
+  position: absolute;
+  /* Oversized so the rotating square always covers the card's corners; a
+     100%-sized element leaves them bare for part of every turn. */
+  inset: -60%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0 58%,
+    hsl(var(--primary)) 74%,
+    #ff901b 88%,
+    transparent 96%
+  );
+  opacity: 0.45;
+  animation: vf-auth-orbit 11s linear infinite;
+  transition: opacity 0.45s var(--vf-ease);
+}
+
+/* focus-within, not hover: the trigger is someone actually filling the form,
+   which covers keyboard and touch. Hover is added on top for the pointer. */
+.vf-auth-rim:hover::before,
+.vf-auth-rim:focus-within::before {
+  opacity: 1;
+}
+
+@keyframes vf-auth-orbit {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+.vf-auth-card {
+  position: relative;
+  z-index: 1;
+  border-radius: 19.5px;
+  background: hsl(var(--card));
+  padding: 2.25rem 2rem;
+}
+
+/* ── Submit trace ────────────────────────────────────────────
+   Nothing moves here until the button is pressed. Signing in is the one moment
+   this screen can feel slow — a request is in flight and the page looks
+   identical — so the top edge runs a line for exactly as long as that lasts.
+   It is indeterminate on purpose: the API gives no progress to report, and a
+   bar that fills to 90% and waits is a lie about something you cannot know. */
+.vf-auth-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  overflow: hidden;
+  z-index: 2;
+  border-radius: 21px 21px 0 0;
+}
+
+.vf-auth-track span {
+  display: block;
+  height: 100%;
+  width: 38%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, hsl(var(--primary)), #ff901b, transparent);
+  animation: vf-auth-run 1.5s var(--vf-ease) infinite;
+}
+
+@keyframes vf-auth-run {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(320%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The rim stays — it is a gradient edge, which is decoration this design
+     wants — but it stops travelling. The submit trace holds still at the left
+     rather than disappearing, so the busy state is still visible. */
+  .vf-auth-rim::before {
+    animation: none;
+    opacity: 0.55;
+  }
+  .vf-auth-track span {
+    animation: none;
+    width: 100%;
+  }
+}

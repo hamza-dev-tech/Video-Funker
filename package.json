@@ -2,25 +2,59 @@
   "name": "videofunker",
   "version": "1.0.0",
   "private": true,
-  "description": "Video Funker — AI-generated video content that books meetings. Monorepo: marketing client + BFF server.",
+  "description": "Video Funker — AI-generated video content that books meetings. Monorepo: marketing client + product app, BFF server, product API.",
   "workspaces": [
     "client",
-    "server"
+    "server",
+    "api"
   ],
   "scripts": {
-    "dev": "concurrently -n client,server -c cyan,magenta \"npm:dev:client\" \"npm:dev:server\"",
+    "dev": "concurrently -n client,server,api -c cyan,magenta,yellow \"npm:dev:client\" \"npm:dev:server\" \"npm:dev:api\"",
     "dev:client": "npm --workspace client run dev",
     "dev:server": "npm --workspace server run dev",
-    "build": "npm --workspace client run build",
-    "start": "concurrently -n client,server -c cyan,magenta \"npm:start:client\" \"npm:start:server\"",
+    "dev:api": "npm --workspace api run dev",
+    "build": "npm --workspace api run build && npm --workspace client run build",
+    "build:client": "npm --workspace client run build",
+    "build:api": "npm --workspace api run build",
+    "start": "concurrently -n client,server,api -c cyan,magenta,yellow \"npm:start:client\" \"npm:start:server\" \"npm:start:api\"",
     "start:client": "npm --workspace client run start",
     "start:server": "npm --workspace server run start",
-    "lint": "npm --workspace client run lint"
+    "start:api": "npm --workspace api run start",
+    "lint": "npm --workspace client run lint",
+    "doctor": "node scripts/check-stack.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
   },
   "engines": {
     "node": ">=20"
+  },
+  "//overrides": [
+    "react-day-picker 8 declares a React peer range that stops at 18. The client",
+    "is pinned to React 19 because Next 15's App Router requires it, so without",
+    "this the install fails outright with ERESOLVE — and the usual workaround,",
+    "--legacy-peer-deps, disables peer checking for EVERY package in the tree,",
+    "including the ones where a real mismatch would matter. This narrows the",
+    "exception to the one package that needs it.",
+    "",
+    "It stays on 8 deliberately: 9 and 10 replaced the components API that",
+    "client/src/product/components/ui/calendar.tsx is written against (IconLeft",
+    "and IconRight became Chevron). The range is stale metadata, not a",
+    "functional limit — the library works on 19.",
+    "",
+    "The two other packages that had the same problem needed no override:",
+    "next-themes and vaul both publish React-19-compatible majors that are API",
+    "compatible with the shadcn wrappers, so client/package.json simply asks for",
+    "them (0.4 and 1.1).",
+    "",
+    "Versions are written out rather than using the $name form: $react resolves",
+    "against a direct dependency of the ROOT package, and the root of this",
+    "monorepo has no React of its own. Keep them in step with client/package.json."
+  ],
+  "overrides": {
+    "react-day-picker": {
+      "react": "19.1.0",
+      "react-dom": "19.1.0"
+    }
   }
 }

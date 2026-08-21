@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://app.videofunker.ai';
-
 /** One year in seconds, the ceiling every HTTP cache respects. */
 const YEAR = 31536000;
 
@@ -65,32 +63,54 @@ const nextConfig = {
   },
 
   /**
-   * The client is split into two route families:
+   * The client is split into two route families, and both are now served by
+   * this Next app:
    *
-   *   /            → the marketing site, rendered by this Next app
-   *   /app/*       → the product, which lives on its own deployment at
-   *                  app.videofunker.ai
+   *   /            → the marketing site        (app/(marketing)/**)
+   *   /app/*       → the product workspace     (app/(product)/app/page.js)
    *
-   * Keeping the product behind a redirect (rather than hard-coding the
-   * subdomain into every link) means the marketing site can talk about
-   * "/app/login" internally and still work if the product ever moves.
+   * These four routes used to 301 out to a separate deployment on
+   * app.videofunker.ai. The product is in this repository now, so the redirects
+   * are gone — leaving them would send every signed-in user off this origin and
+   * make /app unreachable no matter what was built here.
    */
+
   /**
-   * `permanent: true` on the four product routes.
+   * One rewrite is what makes deep links into the SPA work.
    *
-   * A 307 tells Google the destination is temporary, so it keeps the source
-   * URL in the index, keeps re-crawling it, and passes no signal to where the
-   * product actually lives. These four destinations are not going to move
-   * back, so a 301 is the honest answer: it consolidates onto app.videofunker.ai
-   * and stops four URLs on the marketing domain being crawled forever for
-   * nothing. It is also cacheable by the browser, which the 307 was not.
+   * The product is a react-router application: it owns /app/campaigns,
+   * /app/film, /app/settings and everything else below /app on the CLIENT. The
+   * server knows none of those paths, so a cold load or a refresh on any of
+   * them would 404 before React ever ran. This hands all of them the one route
+   * that boots the SPA, which then reads window.location and renders the right
+   * screen.
+   *
+   * `:path+` (one or more segments) rather than `:path*` (zero or more): with
+   * `*` the rule also matches /app itself and rewrites it to itself, which is a
+   * no-op Next has to resolve on every request to the busiest URL in the app.
+   *
+   * This must agree with `BASE_PATH` in src/product/config.ts — same fact,
+   * stated to two systems that cannot see each other.
+   */
+  async rewrites() {
+    return [{ source: '/app/:path+', destination: '/app' }];
+  },
+
+  /**
+   * `permanent: false` on both.
+   *
+   * These are 307s deliberately. A 301 is cached by the browser more or less
+   * forever, and /login and /signup are exactly the URLs whose destination
+   * moves — the day the product gets its own hostname, or the auth screen gets
+   * its own route, a cached 301 keeps sending returning visitors to the old
+   * place with no way to clear it. Neither URL carries any SEO weight worth
+   * consolidating (both destinations are noindex), so the permanence buys
+   * nothing and costs the ability to change our minds.
    */
   async redirects() {
     return [
-      { source: '/app', destination: APP_URL, permanent: true },
-      { source: '/app/:path*', destination: `${APP_URL}/:path*`, permanent: true },
-      { source: '/login', destination: `${APP_URL}/login`, permanent: true },
-      { source: '/signup', destination: `${APP_URL}/signup`, permanent: true },
+      { source: '/login', destination: '/app/auth', permanent: false },
+      { source: '/signup', destination: '/app/auth?mode=signup', permanent: false },
     ];
   },
 

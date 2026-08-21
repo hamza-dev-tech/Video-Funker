@@ -1,0 +1,9 @@
+node_modules/
+# Every env file, backups included. The enumerated patterns this replaces
+# (.env, .env.local, .env*.local) did not match .env.local.bak, and one such
+# backup reached a commit with live production keys in it.
+.env*
+!.env.example
+uploads/
+dist/
+*.log

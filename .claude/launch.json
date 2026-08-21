@@ -2,10 +2,22 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "marketing",
+      "name": "client",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--workspace", "client", "run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--workspace", "api", "run", "dev"],
+      "port": 3001
+    },
+    {
+      "name": "server",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--workspace", "server", "run", "dev"],
+      "port": 4000
     }
   ]
 }

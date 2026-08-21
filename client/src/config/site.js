@@ -4,7 +4,16 @@
  * palette or domain change never means a find-and-replace across sections.
  */
 
-export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://app.videofunker.ai';
+/**
+ * There is no APP_URL any more.
+ *
+ * It named the separate deployment the product used to live on, and every
+ * product link resolved through a redirect to it. The product is served by this
+ * app now, from src/app/(product), so the links in `appLinks` below are real
+ * paths on this origin. Reintroducing a hostname here would break every preview
+ * deployment and every localhost the moment one of them was not the value in
+ * the env var.
+ */
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://videofunker.ai';
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -36,13 +45,21 @@ export const site = {
 };
 
 /**
- * Every product-side destination. These resolve through this app's own
- * /login, /signup and /app/* redirects (see next.config.mjs), so the
- * marketing HTML stays domain-agnostic.
+ * Every product-side destination.
+ *
+ * The product is served by this same Next app now, from app/(product), so
+ * these are real paths on this origin rather than aliases that 301 out to
+ * another deployment. /login and /signup are kept as redirects in
+ * next.config.mjs because they are short, memorable, and printed on things —
+ * they land on /app/auth, which is the screen that actually exists.
+ *
+ * Written as paths, never as `${APP_URL}/…`: a marketing page that hard-codes
+ * the product's hostname breaks on every preview deployment and on localhost,
+ * and sends the visitor across an origin boundary for no reason.
  */
 export const appLinks = {
-  signup: '/signup',
-  login: '/login',
+  signup: '/app/auth?mode=signup',
+  login: '/app/auth',
   dashboard: '/app',
 };
 

@@ -4,9 +4,9 @@ out/
 dist/
 build/
 
-.env
-.env.local
-.env.*.local
+# Every env file, backups included (.env.local.bak and friends).
+.env*
+!.env.example
 
 npm-debug.log*
 yarn-debug.log*
@@ -21,3 +21,6 @@ Thumbs.db
 coverage/
 *.tsbuildinfo
 next-env.d.ts
+
+# Copied from node_modules by scripts/copy-vision-assets.mjs
+client/public/vision/wasm/
