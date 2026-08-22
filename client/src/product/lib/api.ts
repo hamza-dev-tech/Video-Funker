@@ -150,6 +150,22 @@ export async function deleteCampaign(id: string): Promise<void> {
 
 // ─── ICP Profile API (campaign-scoped) ───────────────────────
 
+/**
+ * Asks for more options for one ICP field, tailored to this ICP.
+ *
+ * The static chips in the form are the free, instant floor. This uses what the
+ * customer has already filled in — what they sell, their size, their region —
+ * so the answers fit their business rather than their industry in general.
+ * Capped server-side; `remaining` comes back so the button can say when it is
+ * nearly spent.
+ */
+export async function suggestIcpOptions(
+  campaignId: string,
+  field: 'roles' | 'painPoints' | 'buyingTriggers' | 'messagingAngles',
+): Promise<{ options: string[]; remaining: number }> {
+  return apiPost<{ options: string[]; remaining: number }>('/icp/suggest', { campaignId, field });
+}
+
 export async function fetchICPByCampaign(campaignId: string): Promise<ICPProfile> {
   const data = await apiGet(`/icp/campaign/${campaignId}`);
   return transformToICPProfile(data);

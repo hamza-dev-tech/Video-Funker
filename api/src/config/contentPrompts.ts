@@ -115,43 +115,80 @@ Client ICP Document:
 [CLIENT FORM DATA &amp; SYSTEM DATA]
 `
 
-export const videoScriptPrompt = `Act as an elite founder-led video strategist, LinkedIn influence architect, B2B executive ghostwriter, and high-growth GTM expert.
-Create a short video script based on the approved topic and article.
-The video should feel natural, not scripted.
-It should sound like a founder or executive speaking clearly to the market.
+/*
+  Rewritten for the ear, and to stop asking for the filler.
 
-OUTPUT:
-Create a 1-2 minute video script.
+  The previous structure listed "2. Context — What is changing in the market?"
+  as the second beat, so the model dutifully opened every script with a
+  scene-setting paragraph about the industry. That is where lines like "The
+  landscape of sales is shifting. We're at a crucial moment where AI-powered
+  solutions are no longer optional" came from — the prompt requested them.
+
+  Three other things were missing and each shows up in the output:
+  no length target (so scripts ran past two minutes, which is long for a
+  talking head), no instruction that this is SPOKEN rather than read, and no
+  requirement to name a specific person or use a concrete detail from the
+  research — which is what separates a script only this company could deliver
+  from one any competitor could read out unchanged.
+*/
+export const videoScriptPrompt = `Act as an elite founder-led video strategist and executive ghostwriter.
+
+Write a short piece to camera, delivered by a founder or executive to one specific person in their market.
+
+THIS IS SPOKEN, NOT READ. Write for the ear:
+- Short sentences. One idea per sentence.
+- Use contractions. Say "you're", not "you are".
+- Say numbers the way a person says them out loud.
+- No sentence should need to be re-read to be understood.
+- Nothing that only works on a page: no lists, no headers, no asides in brackets.
+
+LENGTH: 180-220 words. That is 60-90 seconds spoken at a natural pace. Do not exceed it.
+
 STRUCTURE:
-1. Hook
-One strong opening line.
-2. Context
-What is changing in the market?
-3. Problem
-What is the buyer struggling with?
-4. Insight
-What does the speaker believe most companies are missing?
-5. Point of View
-What should buyers think about differently?
-6. Soft Close
-End with a thoughtful takeaway, not a sales pitch.
-STYLE:
-- conversational
-- founder-led
-- clear
-- executive
-- easy to record
-- no corporate jargon
-- no overcomplicated sentences
-Just output the script no hashtags, directors edits, or narration of screen,. Script only.
+1. Open on the viewer's situation.
+   Name something specific and true about the person watching — what they did last week, what is on their list, what they are quietly worried about. Concrete and immediate.
+2. The tension.
+   Name the thing that is not working, and be specific about the cost of it.
+3. The insight.
+   What does the speaker believe that most people in this market get wrong? Take a position. This is the only reason to watch.
+4. The evidence.
+   One concrete detail, number or example drawn from the RESEARCH below. Never invent one — if the research has none, describe a specific situation instead.
+5. Soft close.
+   One thought to leave them with. Not a pitch, not a call to action, not "if you want to learn more".
+
+BANNED OPENINGS. Do not begin with any of these or anything like them:
+- "The landscape of X is shifting"
+- "In today's fast-paced world"
+- "We're at a crucial moment"
+- "X is no longer optional"
+- "Let's talk about"
+- "Have you ever wondered"
+- Any sentence describing the industry rather than the person.
+
+ALSO BANNED ANYWHERE IN THE SCRIPT:
+- "game changer", "leverage", "unlock", "seamless", "revolutionise", "in this video"
+- Restating in the final sentence what was already said
+- Any statistic, customer name or case study not present in the inputs
+
+STYLE: conversational, founder-led, direct, easy to record in one take, no corporate jargon.
+
+Output the spoken words only. No headings, no stage directions, no camera notes, no hashtags, no speaker labels.
+
 INPUTS:
+
+Campaign Brief:
+[PASTE TOPIC]
+
 RESEARCH:
 [PASTE RESEARCH]
+
 Client ICP Document:
 [PASTE ICP]
+
 ARTICLE:
 [PASTE ARTICLE]
-[CLIENT FORM DATA &amp; SYSTEM DATA]
+
+[CLIENT FORM DATA & SYSTEM DATA]
 `
 
 export const longFormPostPrompt = `Act as an elite LinkedIn ghostwriter, founder-led influence strategist, B2B GTM expert, and executive content architect.

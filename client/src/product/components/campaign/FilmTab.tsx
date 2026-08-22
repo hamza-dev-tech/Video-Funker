@@ -48,6 +48,8 @@ import { StepAvatar } from "@product/components/campaign/film/StepAvatar";
 import { StepVoice } from "@product/components/campaign/film/StepVoice";
 import { StepScript } from "@product/components/campaign/film/StepScript";
 import { StepReview } from "@product/components/campaign/film/StepReview";
+import { DEFAULT_BACKDROP, backdropColor } from "@product/components/campaign/film/videoBackdrops";
+import { DEFAULT_ENGINE } from "@product/components/campaign/film/videoEngines";
 import type { StepperStep } from "@product/components/campaign/film/Stepper";
 import { EmptyState } from "@product/components/layout/EmptyState";
 import { Link } from "react-router-dom";
@@ -86,6 +88,18 @@ export function FilmTab({ campaignId }: FilmTabProps) {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  /*
+    Which HeyGen pipeline renders this one.
+
+    Defaults to 'exact' — the script this product spends eight AI steps writing
+    should be the script that gets spoken. 'agent' is kept so the two can be
+    compared on real output and real cost before committing to either.
+  */
+  const [renderMode, setRenderMode] = useState<"exact" | "agent">("exact");
+  /* On by default: most feed video is watched muted. */
+  const [captions, setCaptions] = useState(true);
+  const [backdrop, setBackdrop] = useState<string>(DEFAULT_BACKDROP);
+  const [engine, setEngine] = useState<"avatar_iii" | "avatar_iv" | "avatar_v">(DEFAULT_ENGINE);
   const [script, setScript] = useState("");
 
   // Voice selection (independent from avatar)
@@ -429,6 +443,10 @@ export function FilmTab({ campaignId }: FilmTabProps) {
             ? selectedClone.voiceName
             : selectedVoice!.name,
           voiceCloneId: selectedClone?.id,
+          renderMode,
+          captions,
+          backdrop: backdropColor(backdrop),
+          engine,
         });
         toast({
           title: "Filming started",
@@ -647,6 +665,7 @@ export function FilmTab({ campaignId }: FilmTabProps) {
       <div className="p-6 max-w-7xl mx-auto">
         {mode === "library" ? (
           <VideoLibrary
+            campaignId={campaignId}
             videos={videos}
             campaignName={activeCampaignName}
             syncingId={syncingId}
@@ -730,6 +749,14 @@ export function FilmTab({ campaignId }: FilmTabProps) {
                 script={script}
                 usage={campaignUsage}
                 generating={generating}
+                renderMode={renderMode}
+                onRenderModeChange={setRenderMode}
+                captions={captions}
+                onCaptionsChange={setCaptions}
+                backdrop={backdrop}
+                onBackdropChange={setBackdrop}
+                engine={engine}
+                onEngineChange={setEngine}
                 onGenerate={handleGenerate}
               />
             )}

@@ -10,7 +10,7 @@ import {
 } from "@product/components/ui/select";
 import {
   ArrowLeft, ArrowRight, ImagePlus, Loader2, Sparkles, X, ChevronDown, Wand2, Info,
-  CheckCircle2, AlertTriangle,
+  CheckCircle2, AlertTriangle, Crop, User,
 } from "lucide-react";
 import { cn } from "@product/lib/utils";
 import { useToast } from "@product/hooks/use-toast";
@@ -21,7 +21,10 @@ import {
   type ReferenceImage,
 } from "@product/lib/heygen-api";
 import { previewPrompt, summarise } from "@product/lib/presenterPrompt";
-import { prepareImage, isFailure, formatBytes, type PreparedImage } from "@product/lib/prepareImage";
+import {
+  prepareImage, cropToFace, canCropToFace, isFailure, formatBytes,
+  MIN_FACE_HEIGHT_FOR_CROP, type PreparedImage,
+} from "@product/lib/prepareImage";
 import { checkForFace, type FaceCheck } from "@product/lib/faceCheck";
 import {
   RECIPES, GENDER_OPTIONS, AGE_OPTIONS, ETHNICITY_OPTIONS,
@@ -127,6 +130,16 @@ export function AvatarCreationWizard({ open, onOpenChange, onCreated }: AvatarCr
   const [submitting, setSubmitting] = useState(false);
   const [mode, setMode] = useState<Mode>("describe");
   const [recipeId, setRecipeId] = useState<string | null>(null);
+  /*
+    Photoreal or animated.
+
+    This existed already, as one entry in a six-item Style dropdown two screens
+    later — "Pixar", labelled "Animated". That is the wrong place for it: it is
+    not a refinement of a presenter, it is which kind of presenter you are
+    making, and it changes every other choice on the screen. An animated
+    presenter is a different product decision, so it is asked as one.
+  */
+  const [look, setLook] = useState<"realistic" | "animated">("realistic");
 
   const [name, setName] = useState("");
   const [spec, setSpec] = useState<PresenterSpec>({});
@@ -140,6 +153,21 @@ export function AvatarCreationWizard({ open, onOpenChange, onCreated }: AvatarCr
   // Picking a second photo while the first is still being examined would
   // otherwise let the stale verdict land on top of the new one.
   const faceRun = useRef(0);
+  const [cropping, setCropping] = useState(false);
+  /*
+    What the photo is FOR.
+
+    Picking "Use a photo" and getting your exact snapshot animated is not what
+    most people mean. They mean "make me a presenter, here is my face". Both
+    routes always existed — HeyGen animates the image directly, or generates a
+    new presenter from it as a likeness reference — but the second was reachable
+    only through a small link that appeared once the first had already failed.
+    The better option was hidden behind a failure.
+
+    Both are now shown as soon as there is a photo, each stating what it
+    produces and whether this particular photo is good enough for it.
+  */
+  const [photoUse, setPhotoUse] = useState<"exact" | "likeness">("exact");
   const photoInput = useRef<HTMLInputElement>(null);
 
   const [references, setReferences] = useState<{ file: File; url: string }[]>([]);
@@ -152,6 +180,7 @@ export function AvatarCreationWizard({ open, onOpenChange, onCreated }: AvatarCr
     setScreen("mode");
     setMode("describe");
     setRecipeId(null);
+    setLook("realistic");
     setName("");
     setSpec({});
     setShowFullPrompt(false);
@@ -159,6 +188,7 @@ export function AvatarCreationWizard({ open, onOpenChange, onCreated }: AvatarCr
     setPhoto(null);
     setPhotoPreview(null);
     setPhotoChecking(false);
+    setPhotoUse("exact");
     setFaceCheck(null);
     setFaceChecking(false);
     faceRun.current++;
@@ -185,11 +215,86 @@ export function AvatarCreationWizard({ open, onOpenChange, onCreated }: AvatarCr
     return true;
   };
 
-  const pickRecipe = (id: string) => {
+  /*
+    Fix the framing instead of asking for a better photo.
+
+    The face check is advisory, and the natural response to "your photo is not
+    ideal" is to use it anyway — which is how a full-body garden shot became a
+    presenter. Since the detector already returns where the face is, the product
+    can crop to a proper headshot itself rather than sending someone away to
+    find another picture.
+  */
+  const cropPhoto = async () => {
+    if (!photo || !faceCheck?.box) return;
+    setCropping(true);
+    try {
+      const result = await cropToFace(photo.file, faceCheck.box);
+      if (isFailure(result)) {
+        toast({ title: "Couldn't crop that", description: result.problem, variant: "destructive" });
+        return;
+      }
+      if (photoPreview) URL.revokeObjectURL(photoPreview);
+      setPhoto(result);
+      setPhotoPreview(URL.createObjectURL(result.file));
+
+      // Re-check the crop rather than assuming it worked.
+      const run = ++faceRun.current;
+      setFaceCheck(null);
+      setFaceChecking(true);
+      const face = await checkForFace(result.file);
+      if (faceRun.current !== run) return;
+      setFaceCheck(face);
+      setFaceChecking(false);
+    } finally {
+      setCropping(false);
+    }
+  };
+
+  /*
+    Turn an unusable photo into a usable presenter.
+
+    A photo avatar IS the photo — HeyGen animates the picture you gave it. So a
+    full-body garden shot becomes a presenter who is a full-body garden shot,
+    which is what "the system just uploaded the image and did not create an
+    avatar" actually describes. It did create one; the input was simply never
+    a portrait.
+
+    The generate path already accepts reference images and passes them to
+    HeyGen, so the same photo can be used the other way round: not as the
+    presenter, but as the likeness a properly framed, studio-lit presenter is
+    generated from. That is the outcome someone uploading a photo of themselves
+    is usually after.
+  */
+  const useAsReference = () => {
+    if (!photo) return;
+    setReferences((prev) =>
+      prev.length >= MAX_REFERENCES
+        ? prev
+        : [...prev, { file: photo.file, url: URL.createObjectURL(photo.file) }]
+    );
+    setMode("describe");
+    setScreen("recipe");
+  };
+
+  const pickRecipe = (id: string, withLook: "realistic" | "animated" = look) => {
     const recipe = RECIPES.find((r) => r.id === id);
     if (!recipe) return;
     setRecipeId(id);
-    setSpec(recipe.spec);
+    /*
+      The recipe carries a photographic style — Realistic or Cinematic. An
+      animated presenter overrides it, because "cinematic colour grade, shot on
+      an 85mm anamorphic lens" is direction for a camera, and there is no camera.
+    */
+    setSpec({
+      ...recipe.spec,
+      style: withLook === "animated" ? "Pixar" : recipe.spec.style,
+    });
+  };
+
+  /* Switching look re-applies it to a recipe already chosen. */
+  const chooseLook = (next: "realistic" | "animated") => {
+    setLook(next);
+    if (recipeId) pickRecipe(recipeId, next);
   };
 
   const promptText = useMemo(() => previewPrompt(spec), [spec]);
@@ -220,6 +325,18 @@ export function AvatarCreationWizard({ open, onOpenChange, onCreated }: AvatarCr
   const chooseRecipe = (id: string) => {
     pickRecipe(id);
     setScreen("refine");
+  };
+
+  /*
+    Continue on the photo screen means "take this route", not just "next".
+
+    The likeness route is a different pipeline — the photo becomes a reference
+    and the presenter is generated — so it hands off to the recipe screen
+    instead of walking on to review.
+  */
+  const continueFromPhoto = () => {
+    if (photoUse === "likeness") useAsReference();
+    else go(1);
   };
 
   // Only the screens that are not self-advancing need the button.
@@ -315,7 +432,47 @@ export function AvatarCreationWizard({ open, onOpenChange, onCreated }: AvatarCr
 
         {/* ── Starting points ──────────────────────────────────────────── */}
         {screen === "recipe" && (
-          <div className="grid gap-2.5 sm:grid-cols-2">
+          <div className="space-y-4">
+            {/*
+              Asked before the recipe, because it changes what every recipe
+              below means. Two options rather than a dropdown: there are only
+              two, and both deserve to be readable without opening anything.
+            */}
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              {([
+                {
+                  id: "realistic" as const,
+                  title: "Realistic",
+                  body: "A photoreal person. What most B2B audiences expect from a founder on camera.",
+                },
+                {
+                  id: "animated" as const,
+                  title: "Animated",
+                  body: "A stylised 3D character. Distinctive, and it never sits in the uncanny valley.",
+                },
+              ]).map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => chooseLook(opt.id)}
+                  className={cn(
+                    "rounded-xl border p-3.5 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                    look === opt.id
+                      ? "border-primary bg-primary/[0.07] ring-1 ring-primary"
+                      : "border-border/70 hover:border-primary/45 hover:bg-secondary/50"
+                  )}
+                >
+                  <span className="block text-[14px] font-semibold text-foreground">
+                    {opt.title}
+                  </span>
+                  <span className="mt-0.5 block text-[12.5px] leading-snug text-muted-foreground">
+                    {opt.body}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="grid gap-2.5 sm:grid-cols-2">
             {RECIPES.map((r) => (
               <button
                 key={r.id}
@@ -341,7 +498,10 @@ export function AvatarCreationWizard({ open, onOpenChange, onCreated }: AvatarCr
                   costs a real generation and a long wait to find out.
                 */}
                 <span className="mt-2.5 flex flex-wrap gap-1">
-                  {r.chips.map((c) => (
+                  {(look === "animated"
+                    ? ["Animated", ...r.chips.slice(1)]
+                    : r.chips
+                  ).map((c) => (
                     <span
                       key={c}
                       className="rounded-md bg-secondary px-2 py-0.5 text-[11.5px] font-medium text-secondary-foreground"
@@ -352,6 +512,7 @@ export function AvatarCreationWizard({ open, onOpenChange, onCreated }: AvatarCr
                 </span>
               </button>
             ))}
+            </div>
           </div>
         )}
 
@@ -469,6 +630,53 @@ export function AvatarCreationWizard({ open, onOpenChange, onCreated }: AvatarCr
                         </p>
                       )}
 
+                      {/*
+                        Offered only when there is a face to crop around. This is
+                        the difference between telling someone their photo is
+                        wrong and handing them a corrected one.
+                      */}
+                      {/*
+                        Only offered when it would actually help. Cropping a
+                        small face produces a correctly-framed but far too small
+                        image, and upscaling it back over the limit would hide
+                        the problem behind a green tick rather than solve it.
+                      */}
+                      {!faceChecking &&
+                        faceCheck?.verdict === "small" &&
+                        faceCheck.box &&
+                        canCropToFace(faceCheck.box, photo.width, photo.height) && (
+                        <button
+                          type="button"
+                          onClick={cropPhoto}
+                          disabled={cropping}
+                          className="flex items-center gap-1.5 rounded-lg border border-primary/45 bg-primary/[0.06] px-2.5 py-1.5 text-[12.5px] font-semibold text-primary transition-colors hover:bg-primary/[0.12] disabled:opacity-60"
+                        >
+                          {cropping ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Crop className="h-3.5 w-3.5" />
+                          )}
+                          {cropping ? "Cropping" : "Crop to the face for me"}
+                        </button>
+                        )}
+
+                      {/*
+                        When cropping cannot help, say what photo would — a
+                        measurement someone can act on, not "use a better photo".
+                      */}
+                      {!faceChecking &&
+                        faceCheck?.verdict === "small" &&
+                        faceCheck.box &&
+                        !canCropToFace(faceCheck.box, photo.width, photo.height) && (
+                          <p className="leading-relaxed text-muted-foreground">
+                            Cropping won't help here — the face is only{" "}
+                            {Math.round(faceCheck.box.height)}px tall and needs about{" "}
+                            {MIN_FACE_HEIGHT_FOR_CROP}px. Take one where your head and
+                            shoulders fill the frame.
+                          </p>
+                        )}
+
+
                       <button
                         type="button"
                         onClick={() => photoInput.current?.click()}
@@ -483,6 +691,78 @@ export function AvatarCreationWizard({ open, onOpenChange, onCreated }: AvatarCr
                     <ImagePlus className="h-4 w-4" /> Choose a photo
                   </Button>
                 )}
+
+                {/*
+                  Both routes, side by side, as soon as there is a photo.
+
+                  Each says what it produces and whether this photo is good
+                  enough for it, so the choice is never made blind — and the
+                  better option is no longer something you discover by failing.
+                */}
+                {photo && !photoChecking && (
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+                    {(
+                      [
+                        {
+                          id: "exact" as const,
+                          Icon: User,
+                          title: "Use this exact face",
+                          body: "Your photo becomes the presenter. HeyGen animates it and syncs the lips.",
+                          ok: faceCheck?.verdict === "ok" || faceCheck?.verdict === "unknown",
+                          okNote: "This photo works",
+                          badNote: "Needs a head-and-shoulders photo",
+                        },
+                        {
+                          id: "likeness" as const,
+                          Icon: Sparkles,
+                          title: "Generate someone who looks like this",
+                          body: "We build a new, studio-lit presenter from your likeness, properly framed.",
+                          ok: true,
+                          okNote: "Works with any clear photo",
+                          badNote: "",
+                        },
+                      ] as const
+                    ).map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setPhotoUse(opt.id)}
+                        className={cn(
+                          "rounded-xl border p-3.5 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                          photoUse === opt.id
+                            ? "border-primary bg-primary/[0.07] ring-1 ring-primary"
+                            : "border-border/70 hover:border-primary/45 hover:bg-secondary/50"
+                        )}
+                      >
+                        <span className="flex items-center gap-2">
+                          <opt.Icon className="h-4 w-4 flex-none text-primary" strokeWidth={2} />
+                          <span className="text-[14px] font-semibold text-foreground">
+                            {opt.title}
+                          </span>
+                        </span>
+                        <span className="mt-1 block text-[12.5px] leading-snug text-muted-foreground">
+                          {opt.body}
+                        </span>
+                        <span
+                          className={cn(
+                            "mt-2 flex items-center gap-1 text-[12px] font-medium",
+                            opt.ok
+                              ? "text-emerald-700 dark:text-emerald-400"
+                              : "text-amber-700 dark:text-amber-400"
+                          )}
+                        >
+                          {opt.ok ? (
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          ) : (
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                          )}
+                          {opt.ok ? opt.okNote : opt.badNote}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <div className="flex gap-2.5 rounded-xl border border-primary/15 bg-primary/[0.06] p-3.5">
                   <Info className="mt-px h-4 w-4 flex-none text-primary" strokeWidth={2} />
                   <p className="text-[13px] leading-relaxed text-foreground/80">
@@ -555,11 +835,44 @@ export function AvatarCreationWizard({ open, onOpenChange, onCreated }: AvatarCr
                 accept=".jpg,.jpeg,.png"
                 multiple
                 className="hidden"
-                onChange={(e) => {
+                onChange={async (e) => {
                   const picked = Array.from(e.target.files || []).filter(validImage);
-                  setReferences((prev) =>
-                    [...prev, ...picked.map((f) => ({ file: f, url: URL.createObjectURL(f) }))].slice(0, MAX_REFERENCES)
+                  e.target.value = "";
+
+                  /*
+                    Shrunk before they are held, not at send time.
+
+                    These are base64-encoded into the request body, which
+                    inflates them by a third — a couple of full-size phone
+                    photos exceeded the server's body limit and the generation
+                    failed with "request entity too large". Downscaling costs
+                    nothing here: HeyGen reads them for likeness, and a face is
+                    perfectly legible at 1536px.
+
+                    A file that fails preparation is skipped rather than
+                    dropped silently — prepareImage refuses images too small to
+                    be useful as a reference anyway.
+                  */
+                  const prepared = await Promise.all(
+                    picked.map(async (f) => {
+                      const result = await prepareImage(f);
+                      if (isFailure(result)) return null;
+                      return { file: result.file, url: URL.createObjectURL(result.file) };
+                    })
                   );
+
+                  const usable = prepared.filter(
+                    (r): r is { file: File; url: string } => r !== null
+                  );
+
+                  if (usable.length < picked.length) {
+                    toast({
+                      title: "Some references were skipped",
+                      description: "Reference images need to be at least 512x512.",
+                    });
+                  }
+
+                  setReferences((prev) => [...prev, ...usable].slice(0, MAX_REFERENCES));
                 }}
               />
               <div className="flex flex-wrap items-center gap-2">
@@ -649,7 +962,11 @@ export function AvatarCreationWizard({ open, onOpenChange, onCreated }: AvatarCr
           </Button>
 
           {showContinue ? (
-            <Button onClick={() => go(1)} disabled={!canContinue} className="gap-1.5">
+            <Button
+              onClick={() => (screen === "photo" ? continueFromPhoto() : go(1))}
+              disabled={!canContinue}
+              className="gap-1.5"
+            >
               Continue <ArrowRight className="h-4 w-4" />
             </Button>
           ) : isLast ? (

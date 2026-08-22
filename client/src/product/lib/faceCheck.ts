@@ -58,12 +58,33 @@ export interface FaceCheck {
   note: string | null;
   /** How tall the largest face is relative to the image, 0–1. */
   faceHeightRatio?: number;
+  /*
+    The detected face, in the padded square the detector actually saw.
+
+    `padding` is how much was added to each side to square the image up, so a
+    caller can translate back to the original photo's coordinates.
+  */
+  box?: FaceBox;
+  padding?: { x: number; y: number };
   faces?: number;
 }
 
-interface Box {
+/**
+ * Where the face is, in the coordinate space of the image as loaded.
+ *
+ * Only the height was kept before, because the only question being asked was
+ * "is this face big enough". Keeping the whole rectangle means a photo that
+ * fails that test can be fixed rather than merely refused — see cropToFace in
+ * prepareImage.ts.
+ */
+export interface FaceBox {
+  x: number;
+  y: number;
+  width: number;
   height: number;
 }
+
+type Box = FaceBox;
 
 /* ── Tier 1: the browser's own detector ─────────────────────────────────── */
 
@@ -83,7 +104,12 @@ async function detectNative(img: CanvasImageSource): Promise<Box[] | null> {
     // than the few milliseconds the thorough pass costs.
     const detector = new window.FaceDetector({ fastMode: false, maxDetectedFaces: 10 });
     const faces = await detector.detect(img);
-    return faces.map((f) => ({ height: f.boundingBox.height }));
+    return faces.map((f) => ({
+      x: f.boundingBox.x,
+      y: f.boundingBox.y,
+      width: f.boundingBox.width,
+      height: f.boundingBox.height,
+    }));
   } catch {
     // Present but non-functional, which happens on platforms where the browser
     // exposes the constructor without a backing implementation.
@@ -96,7 +122,7 @@ async function detectNative(img: CanvasImageSource): Promise<Box[] | null> {
 type MediaPipeDetector = {
   detect(source: HTMLImageElement | HTMLCanvasElement): {
     detections: Array<{
-      boundingBox?: { height: number };
+      boundingBox?: { originX: number; originY: number; width: number; height: number };
       categories?: Array<{ score: number }>;
     }>;
   };
@@ -139,7 +165,12 @@ async function detectMediaPipe(img: HTMLImageElement | HTMLCanvasElement): Promi
     const result = detector.detect(img);
     return (result.detections || [])
       .filter((d) => (d.categories?.[0]?.score ?? 1) >= MIN_CONFIDENCE)
-      .map((d) => ({ height: d.boundingBox?.height ?? 0 }));
+      .map((d) => ({
+        x: d.boundingBox?.originX ?? 0,
+        y: d.boundingBox?.originY ?? 0,
+        width: d.boundingBox?.width ?? 0,
+        height: d.boundingBox?.height ?? 0,
+      }));
   } catch {
     return null;
   }
@@ -161,32 +192,41 @@ async function detectMediaPipe(img: HTMLImageElement | HTMLCanvasElement): Promi
  */
 const SQUARE_THRESHOLD = 1.1;
 
-function squareUp(img: HTMLImageElement): HTMLImageElement | HTMLCanvasElement {
+function squareUp(
+  img: HTMLImageElement
+): { source: HTMLImageElement | HTMLCanvasElement; padding: { x: number; y: number } } {
   const w = img.naturalWidth;
   const h = img.naturalHeight;
-  if (!w || !h) return img;
-  if (Math.max(w / h, h / w) < SQUARE_THRESHOLD) return img;
+  const none = { source: img, padding: { x: 0, y: 0 } };
+  if (!w || !h) return none;
+  if (Math.max(w / h, h / w) < SQUARE_THRESHOLD) return none;
 
   const side = Math.max(w, h);
   const canvas = document.createElement("canvas");
   canvas.width = side;
   canvas.height = side;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return img;
+  if (!ctx) return none;
 
   // Mid grey rather than white or black: a hard edge against the photo can
   // read as a feature to the detector, a neutral one does not.
   ctx.fillStyle = "#808080";
   ctx.fillRect(0, 0, side, side);
-  ctx.drawImage(img, (side - w) / 2, (side - h) / 2, w, h);
-  return canvas;
+  const padX = (side - w) / 2;
+  const padY = (side - h) / 2;
+  ctx.drawImage(img, padX, padY, w, h);
+  return { source: canvas, padding: { x: padX, y: padY } };
 }
 
 /* ── The verdict ────────────────────────────────────────────────────────── */
 
 const UNKNOWN: FaceCheck = { verdict: "unknown", note: null };
 
-function judge(faces: Box[], imageHeight: number): FaceCheck {
+function judge(
+  faces: Box[],
+  imageHeight: number,
+  padding: { x: number; y: number }
+): FaceCheck {
   if (faces.length === 0) {
     return {
       verdict: "none",
@@ -208,17 +248,25 @@ function judge(faces: Box[], imageHeight: number): FaceCheck {
   }
 
   const ratio = imageHeight > 0 ? faces[0].height / imageHeight : 0;
+  // Back into the original photo's coordinates, undoing the squaring pad.
+  const box: FaceBox = {
+    x: faces[0].x - padding.x,
+    y: faces[0].y - padding.y,
+    width: faces[0].width,
+    height: faces[0].height,
+  };
 
   if (ratio > 0 && ratio < MIN_FACE_HEIGHT_RATIO) {
     return {
       verdict: "small",
       faces: 1,
       faceHeightRatio: ratio,
+      box,
       note: `The face fills only about ${Math.round(ratio * 100)}% of this photo. Crop in closer — a distant face gives the model very little to work with.`,
     };
   }
 
-  return { verdict: "ok", faces: 1, faceHeightRatio: ratio, note: null };
+  return { verdict: "ok", faces: 1, faceHeightRatio: ratio, box, note: null };
 }
 
 /**
@@ -242,9 +290,9 @@ export async function checkForFace(file: File): Promise<FaceCheck> {
   }
 
   try {
-    const source = squareUp(img);
+    const { source, padding } = squareUp(img);
     const faces = (await detectNative(source)) ?? (await detectMediaPipe(source));
-    return faces ? judge(faces, img.naturalHeight) : UNKNOWN;
+    return faces ? judge(faces, img.naturalHeight, padding) : UNKNOWN;
   } catch {
     return UNKNOWN;
   } finally {

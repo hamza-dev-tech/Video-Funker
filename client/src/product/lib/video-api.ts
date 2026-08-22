@@ -24,6 +24,10 @@ export interface VideoItem {
   duration?: number;
   /** Why a render failed, when HeyGen told us. */
   failureReason?: string | null;
+  /** HeyGen's own word: "pending", "processing", "completed"… */
+  upstreamStatus?: string | null;
+  /** Which HeyGen pipeline made it. See the Video model for the difference. */
+  renderMode?: "exact" | "agent";
   voiceId?: string | null;
   voiceName?: string | null;
   status: VideoStatus;
@@ -38,6 +42,15 @@ export interface GenerateVideoParams {
   voiceId: string;
   voiceName?: string;
   voiceCloneId?: string;
+  /** 'exact' speaks the script verbatim; 'agent' lets HeyGen author it. */
+  renderMode?: "exact" | "agent";
+  /** Burn subtitles into the file. Exact-script renders only. */
+  captions?: boolean;
+  /** Solid backdrop as #RRGGBB. Omit for the presenter's own. */
+  backdrop?: string | null;
+  /** HeyGen rendering engine. The biggest quality lever available. */
+  engine?: "avatar_iii" | "avatar_iv" | "avatar_v";
+  resolution?: "720p" | "1080p" | "4k";
 }
 
 export async function generateVideo(params: GenerateVideoParams): Promise<VideoItem> {
@@ -49,6 +62,11 @@ export async function generateVideo(params: GenerateVideoParams): Promise<VideoI
     voiceId: params.voiceId,
     voiceName: params.voiceName || undefined,
     voiceCloneId: params.voiceCloneId || undefined,
+    renderMode: params.renderMode || undefined,
+    captions: params.captions,
+    backdrop: params.backdrop ?? undefined,
+    engine: params.engine,
+    resolution: params.resolution,
   });
 }
 

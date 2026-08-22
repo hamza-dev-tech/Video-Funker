@@ -8,11 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@prod
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@product/components/ui/select";
 import { 
   Building2, Users, Target, AlertTriangle, Zap, Globe, MessageSquare, Palette,
-  Plus, X, Save, Loader2, Package, RefreshCw
+  Plus, X, Save, Loader2, Package, RefreshCw, Sparkles
 } from "lucide-react";
 import { ICPData, fetchICPByCampaign, updateICPData, createOrUpdateICP } from "@product/lib/api";
 import { useToast } from "@product/hooks/use-toast";
 import { suggestionsFor } from "@product/components/icp/icpSuggestions";
+import { suggestIcpOptions } from "@product/lib/api";
 
 interface ICPFormProps {
   campaignId: string;
@@ -60,13 +61,25 @@ function Suggestions({
   options,
   chosen,
   onAdd,
+  onAskForMore,
+  asking,
+  locked,
 }: {
   options: string[];
   chosen: string[];
   onAdd: (value: string) => void;
+  onAskForMore: () => void;
+  asking?: boolean;
+  /*
+    True until the ICP is saved. The button stays visible and says why, rather
+    than disappearing — a control that is simply absent teaches nobody that it
+    exists, and hiding it means the one moment you most want suggestions is the
+    moment there is nothing on screen offering them.
+  */
+  locked?: boolean;
 }) {
   const remaining = options.filter((o) => !chosen.includes(o));
-  if (remaining.length === 0) return null;
+  // Always render: even with every static chip used, the AI button is the point.
 
   return (
     <div className="space-y-1.5">
@@ -84,6 +97,30 @@ function Suggestions({
             + {o}
           </button>
         ))}
+
+        {/*
+          The hand-written list is generic to an industry — it cannot know what
+          this customer sells or how big their buyer is. This asks for options
+          built from the ICP they have actually filled in, which is the
+          difference between "Raised a Series A" and a trigger that only makes
+          sense for their product.
+        */}
+        {(
+          <button
+            type="button"
+            onClick={onAskForMore}
+            disabled={asking || locked}
+            title={locked ? "Save your ICP first, then we can suggest options that fit your business." : undefined}
+            className="flex items-center gap-1.5 rounded-md border border-dashed border-primary/50 bg-primary/[0.05] px-2.5 py-1 text-[12.5px] font-medium text-primary transition-colors hover:bg-primary/[0.1] disabled:opacity-60"
+          >
+            {asking ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" />
+            )}
+            {asking ? "Thinking" : locked ? "Save to get suggestions" : "Suggest for my ICP"}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -125,6 +162,38 @@ export function ICPForm({ campaignId, onSave, onDataChange, onSaveComplete }: IC
   /* Recomputed when the industry changes, so picking "Healthcare" immediately
      changes what the three list fields suggest. */
   const suggestions = useMemo(() => suggestionsFor(formData.industry), [formData.industry]);
+
+  /*
+    Options the model proposed, merged in front of the static ones.
+
+    Kept in state rather than saved: they are only suggestions until the
+    customer clicks one, at which point the normal add path stores it.
+  */
+  const [aiOptions, setAiOptions] = useState<Record<string, string[]>>({});
+  const [askingFor, setAskingFor] = useState<string | null>(null);
+
+  const askForMore = (field: "roles" | "painPoints" | "buyingTriggers") => async () => {
+    setAskingFor(field);
+    try {
+      const { options } = await suggestIcpOptions(campaignId, field);
+      setAiOptions((prev) => ({
+        ...prev,
+        [field]: [...options, ...(prev[field] || [])],
+      }));
+    } catch (err: any) {
+      toast({
+        title: "Couldn't suggest anything",
+        description: err?.message || "Try again in a moment.",
+        variant: "destructive",
+      });
+    } finally {
+      setAskingFor(null);
+    }
+  };
+
+  /* The model's ideas first, then the hand-written ones, no duplicates. */
+  const optionsFor = (field: "roles" | "painPoints" | "buyingTriggers") =>
+    Array.from(new Set([...(aiOptions[field] || []), ...suggestions[field]]));
 
   const findMissing = (): string[] => {
     const errors: string[] = [];
@@ -348,9 +417,12 @@ export function ICPForm({ campaignId, onSave, onDataChange, onSaveComplete }: IC
               ))}
             </div>
             <Suggestions
-              options={suggestions.roles}
+              options={optionsFor("roles")}
               chosen={formData.roles}
               onAdd={(v) => addToList("roles", v, setNewRole)}
+              onAskForMore={askForMore("roles")}
+              asking={askingFor === "roles"}
+              locked={isNew}
             />
           </CardContent>
         </Card>
@@ -375,9 +447,12 @@ export function ICPForm({ campaignId, onSave, onDataChange, onSaveComplete }: IC
               ))}
             </div>
             <Suggestions
-              options={suggestions.painPoints}
+              options={optionsFor("painPoints")}
               chosen={formData.painPoints}
               onAdd={(v) => addToList("painPoints", v, setNewPainPoint)}
+              onAskForMore={askForMore("painPoints")}
+              asking={askingFor === "painPoints"}
+              locked={isNew}
             />
           </CardContent>
         </Card>
@@ -402,9 +477,12 @@ export function ICPForm({ campaignId, onSave, onDataChange, onSaveComplete }: IC
               ))}
             </div>
             <Suggestions
-              options={suggestions.buyingTriggers}
+              options={optionsFor("buyingTriggers")}
               chosen={formData.buyingTriggers}
               onAdd={(v) => addToList("buyingTriggers", v, setNewTrigger)}
+              onAskForMore={askForMore("buyingTriggers")}
+              asking={askingFor === "buyingTriggers"}
+              locked={isNew}
             />
           </CardContent>
         </Card>

@@ -13,6 +13,7 @@ router.post('/chat', asyncHandler(ai.chat));
 router.post('/generate-document', asyncHandler(ai.generateDocument));
 router.get('/download/:campaignId', asyncHandler(ai.downloadDocument));
 router.get('/questions/:campaignId', asyncHandler(ai.getAdaptiveQuestions));
+router.post('/suggest', asyncHandler(ai.suggestIcpOptions));
 
 // CRUD - campaign-scoped
 router.get('/campaign/:campaignId', asyncHandler(icp.getByCampaign));

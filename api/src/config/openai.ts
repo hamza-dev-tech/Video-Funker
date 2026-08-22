@@ -1,4 +1,4 @@
-import OpenAI, { AzureOpenAI } from 'openai';
+import OpenAI from 'openai';
 import { BadRequestError } from '../errors';
 
 /**
@@ -19,107 +19,24 @@ import { BadRequestError } from '../errors';
  */
 let client: OpenAI | null = null;
 
-/** Sent as `model` on every chat completion when nothing overrides it. */
+/** Sent as `model` on every chat completion. */
 const DEFAULT_CHAT_MODEL = 'gpt-4o-mini';
-
-/**
- * Azure pins the request/response shape to a dated API version. This is the GA
- * version covering the chat-completions shape used here; a URL carrying its own
- * ?api-version= wins over it, and AZURE_OPENAI_API_VERSION wins over both.
- */
-const DEFAULT_AZURE_API_VERSION = '2024-10-21';
-
-const azureKey = (): string | undefined =>
-  process.env.AZURE_API_KEY || process.env.AZURE_OPENAI_API_KEY;
-
-const azureUrl = (): string | undefined =>
-  process.env.AZURE_BASE_URL || process.env.AZURE_OPENAI_ENDPOINT;
-
-/**
- * Azure is opt-in and all-or-nothing: without BOTH the key and the URL we stay
- * on api.openai.com. A half-filled Azure block would otherwise produce a client
- * pointed at an undefined host, which fails far from the missing value.
- */
-const azureConfigured = (): boolean => Boolean(azureKey() && azureUrl());
-
-/**
- * Azure hands out the URL in three shapes:
- *
- *   https://<resource>.services.ai.azure.com/openai/v1
- *     AI Foundry's OpenAI-COMPATIBLE surface. Same wire format as
- *     api.openai.com, so the PLAIN client handles it. AzureOpenAI must not be
- *     used here: it would append /deployments/{model} and ?api-version=, and
- *     this endpoint accepts neither.
- *
- *   https://<resource>.openai.azure.com
- *     the resource root -> `endpoint`, and the SDK appends /openai and
- *     /deployments/{model} itself.
- *
- *   https://<resource>.openai.azure.com/openai/deployments/<name>
- *     a full target URI -> `baseURL`, used as-is. The SDK skips appending
- *     /deployments when the URL already contains it, so the deployment is
- *     already pinned and `model` no longer selects it.
- *
- * Any ?api-version= is lifted out: it belongs in the client's default query,
- * and leaving it on the path would send it twice.
- */
-const parseAzureUrl = (
-  raw: string,
-): { baseURL?: string; endpoint?: string; apiVersion?: string; openAiCompatibleURL?: string } => {
-  let url: URL;
-  try {
-    url = new URL(raw.trim());
-  } catch {
-    throw new BadRequestError(`AZURE_BASE_URL is not a valid URL: ${raw}`);
-  }
-
-  const apiVersion = url.searchParams.get('api-version') || undefined;
-  url.search = '';
-  const clean = url.toString().replace(/\/+$/, '');
-
-  if (/\/openai\/v1$/.test(url.pathname)) return { openAiCompatibleURL: clean };
-
-  return /\/openai(\/|$)/.test(url.pathname)
-    ? { baseURL: clean, apiVersion }
-    : { endpoint: clean, apiVersion };
-};
 
 export const getOpenAI = (): OpenAI => {
   if (client) return client;
-
-  if (azureConfigured()) {
-    const { baseURL, endpoint, apiVersion, openAiCompatibleURL } = parseAzureUrl(azureUrl()!);
-
-    if (openAiCompatibleURL) {
-      client = new OpenAI({ apiKey: azureKey()!, baseURL: openAiCompatibleURL });
-      return client;
-    }
-
-    client = new AzureOpenAI({
-      apiKey: azureKey()!,
-      apiVersion: process.env.AZURE_OPENAI_API_VERSION || apiVersion || DEFAULT_AZURE_API_VERSION,
-      ...(baseURL ? { baseURL } : { endpoint }),
-    });
-    return client;
-  }
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new BadRequestError('OpenAI is not configured (missing OPENAI_API_KEY)');
   }
+
   client = new OpenAI({ apiKey });
   return client;
 };
 
 /**
- * The value to send as `model`.
- *
- * On Azure this is not a model name but the DEPLOYMENT name — the label chosen
- * in the Azure portal, which becomes the URL segment. It often matches the
- * model it serves, so the model name stays the default. Ignored when
- * AZURE_BASE_URL already names a deployment.
+ * The value to send as `model`. A function rather than the constant itself so
+ * the call sites keep reading `model: chatModel()` — the choice stays in one
+ * place if it ever needs to vary again.
  */
-export const chatModel = (): string =>
-  azureConfigured()
-    ? process.env.AZURE_DEPLOYMENT || process.env.AZURE_OPENAI_DEPLOYMENT || DEFAULT_CHAT_MODEL
-    : DEFAULT_CHAT_MODEL;
+export const chatModel = (): string => DEFAULT_CHAT_MODEL;

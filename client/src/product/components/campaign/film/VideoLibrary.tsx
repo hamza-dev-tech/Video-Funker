@@ -1,10 +1,14 @@
 import { Button } from "@product/components/ui/button";
 import { TooltipProvider } from "@product/components/ui/tooltip";
 import { Film, Plus } from "lucide-react";
+import { PageHeader } from "@product/components/layout/PageHeader";
+import { EmptyState } from "@product/components/layout/EmptyState";
 import type { VideoItem } from "@product/lib/video-api";
 import { VideoCard } from "@product/components/campaign/VideoCard";
+import { NextStepBanner } from "@product/components/campaign/NextStepBanner";
 
 interface VideoLibraryProps {
+  campaignId: string;
   videos: VideoItem[];
   campaignName?: string | null;
   syncingId: string | null;
@@ -18,6 +22,7 @@ interface VideoLibraryProps {
 }
 
 export function VideoLibrary({
+  campaignId,
   videos,
   campaignName,
   syncingId,
@@ -30,37 +35,43 @@ export function VideoLibrary({
 }: VideoLibraryProps) {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">
-            Generated Videos{videos.length > 0 ? ` (${videos.length})` : ""}
-          </h2>
-          <p className="mt-0.5 text-[14px] text-muted-foreground">
-            Your video library for this campaign.
-          </p>
-        </div>
-        <Button onClick={onCreateNew} className="gap-2">
-          <Plus className="w-4 h-4" /> Create New Video
-        </Button>
-      </div>
+      {/*
+        The shared header, so this screen sits at the same rhythm as Campaigns,
+        Reports and Avatar Studio. It was rolling its own `text-lg` heading —
+        smaller than every other page title in the product, which made the Film
+        library read as a panel inside something rather than a screen.
+
+        The count moves into the eyebrow: "Generated Videos (2)" put a number in
+        parentheses inside the title, and a title is a name, not a readout.
+      */}
+      <PageHeader
+        eyebrow={campaignName || undefined}
+        title="Videos"
+        description={
+          videos.length === 1
+            ? "One video filmed for this campaign."
+            : `${videos.length} videos filmed for this campaign.`
+        }
+        actions={
+          <Button onClick={onCreateNew} variant="cta" className="gap-2">
+            <Plus className="h-4 w-4" /> New video
+          </Button>
+        }
+      />
+
+      <NextStepBanner campaignId={campaignId} />
 
       {videos.length === 0 ? (
-        <div className="flex flex-col items-center justify-center text-center py-16 space-y-4 rounded-xl border border-dashed border-border">
-          <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
-            <Film className="w-7 h-7 text-muted-foreground" />
-          </div>
-          <div className="space-y-1">
-            <p className="text-[14.5px] font-medium text-foreground">
-              No videos generated yet.
-            </p>
-            <p className="text-[14px] text-muted-foreground">
-              Start by creating your first AI video.
-            </p>
-          </div>
-          <Button onClick={onCreateNew} className="gap-2">
-            <Plus className="w-4 h-4" /> Create New Video
-          </Button>
-        </div>
+        <EmptyState
+          icon={Film}
+          title="Nothing filmed yet"
+          description="Pick a presenter, pick a voice, and the script for this campaign gets delivered to camera."
+          action={
+            <Button onClick={onCreateNew} variant="cta" className="gap-2">
+              <Plus className="h-4 w-4" /> Film the first one
+            </Button>
+          }
+        />
       ) : (
         <TooltipProvider>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Target, FileText, Film, BarChart3, FileCheck } from "lucide-react";
+import { Loader2, Target, FileText, Film, BarChart3, FileCheck, AlertTriangle, Check, X, Circle } from "lucide-react";
 import { fetchCampaignReport, CampaignReport } from "@product/lib/reports-api";
 import { useToast } from "@product/hooks/use-toast";
 import { EmptyState } from "@product/components/layout/EmptyState";
@@ -153,108 +153,222 @@ export function ReportsTab({ campaignId }: ReportsTabProps) {
     );
   }
 
+  const { campaign, brief, audience, sections, videos, videoBreakdown, attention } = report;
+  const written = sections.filter((s) => s.status === "completed" && s.words > 0);
+  const dot = " · ";
+
   return (
-    <div className="mx-auto w-full max-w-[1180px] px-8 py-8 space-y-6">
+    <div className="mx-auto w-full max-w-[1180px] space-y-6 px-8 py-8">
       <PageHeader
-        eyebrow={report.campaign.name}
+        eyebrow={campaign.name}
         title="Report"
-        description="What this campaign has produced so far."
+        description={`Started ${new Date(campaign.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}.`}
       />
 
       {/*
-        Three numbers, one journey, one breakdown.
+        What still needs a person, first.
 
-        This screen used to state the same figures four times over: a summary
-        card, a funnel step, a row in the content breakdown, and a "Task Status"
-        list that repeated the funnel's own done/not-done in words. Videos
-        appeared three times. Saying a number once and clearly is what makes a
-        report read as considered rather than padded.
+        A report that lists only successes hides the reason a campaign
+        underperformed. Anything failed, cut off or missing is named here rather
+        than folded into a total — and when nothing is wrong this block
+        disappears rather than announcing "0 issues".
       */}
+      {attention.length > 0 && (
+        <div className="rounded-[14px] border border-amber-500/30 bg-amber-500/[0.07] p-5">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-400">
+            <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2} />
+            Needs attention
+          </p>
+          <ul className="mt-2.5 space-y-1.5">
+            {attention.map((a) => (
+              <li key={a} className="flex items-start gap-2 text-[14.5px] leading-relaxed text-foreground">
+                <span className="mt-[9px] h-1 w-1 flex-none rounded-full bg-amber-600" />
+                {a}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-        <Metric
-          icon={Target}
-          label="ICP"
-          value={report.icpCreated ? "Set" : "Not set"}
-        />
-        <Metric
-          icon={FileText}
-          label="Content sets"
-          value={report.contentCount}
-        />
+        <Metric icon={FileCheck} label="Words written" value={report.totalWords.toLocaleString()} />
+        <Metric icon={FileText} label="Assets" value={`${written.length} of ${sections.length}`} />
         <Metric
           icon={Film}
           label="Videos ready"
-          value={report.videoCount}
+          value={videoBreakdown.ready}
           note={
-            report.videoBreakdown &&
-            (report.videoBreakdown.rendering > 0 || report.videoBreakdown.failed > 0)
+            videoBreakdown.rendering || videoBreakdown.failed
               ? [
-                  report.videoBreakdown.rendering > 0 &&
-                    `${report.videoBreakdown.rendering} still rendering`,
-                  report.videoBreakdown.failed > 0 &&
-                    `${report.videoBreakdown.failed} failed`,
+                  videoBreakdown.rendering > 0 && `${videoBreakdown.rendering} rendering`,
+                  videoBreakdown.failed > 0 && `${videoBreakdown.failed} failed`,
                 ]
                   .filter(Boolean)
-                  .join(" · ")
+                  .join(dot)
               : null
           }
         />
       </div>
 
-      <div className="rounded-[14px] border border-border/70 bg-card p-6">
-        <p className="mb-6 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          Campaign funnel
-        </p>
-        <div className="relative">
-          {/* The rail sits behind the tiles at their centre line, so the three
-              stages read as one path rather than three unrelated cards. */}
-          <span
-            aria-hidden="true"
-            className="absolute left-[16%] right-[16%] top-[22px] h-px bg-border"
-          />
-          <div className="relative flex items-start gap-2">
-            <FunnelStep
-              icon={Target}
-              label="ICP"
-              value={report.icpCreated ? "Yes" : "No"}
-              done={report.flags.icpCompleted}
-            />
-            <FunnelStep
-              icon={FileText}
-              label="Content"
-              value={report.contentCount}
-              done={report.flags.contentGenerated}
-            />
-            <FunnelStep
-              icon={Film}
-              label="Videos"
-              value={report.videoCount}
-              done={report.flags.videoCreated}
-            />
+      {/*
+        The strategy behind the campaign.
+
+        None of this was shown anywhere. A report that says "1 article" without
+        saying what the article argued, or who it was for, is an inventory — you
+        cannot judge the work from it, and you certainly cannot show it to
+        anyone.
+      */}
+      {(brief || audience) && (
+        <div className="rounded-[14px] border border-border/70 bg-card p-6">
+          <p className="mb-4 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <Target className="h-3.5 w-3.5" strokeWidth={2} />
+            The argument
+          </p>
+
+          {brief?.topic && (
+            <p className="font-display text-[19px] font-bold leading-snug tracking-[-0.015em] text-foreground">
+              {brief.topic}
+            </p>
+          )}
+
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {brief?.angle && <Chip>{brief.angle}</Chip>}
+            {audience?.industry && <Chip>{audience.industry}</Chip>}
+            {audience?.companySize && <Chip>{audience.companySize}</Chip>}
+            {brief?.outcome && <Chip>So they {brief.outcome}</Chip>}
+          </div>
+
+          <dl className="mt-5 grid gap-x-8 gap-y-3 border-t border-border/70 pt-4 text-[14.5px] sm:grid-cols-2">
+            {(brief?.audience || audience?.roles?.length) && (
+              <div>
+                <dt className="text-[12.5px] text-muted-foreground">Written for</dt>
+                <dd className="mt-0.5 leading-relaxed text-foreground">
+                  {brief?.audience || audience!.roles.join(", ")}
+                </dd>
+              </div>
+            )}
+            {audience?.solution && (
+              <div>
+                <dt className="text-[12.5px] text-muted-foreground">What we sell</dt>
+                <dd className="mt-0.5 leading-relaxed text-foreground">{audience.solution}</dd>
+              </div>
+            )}
+            {audience?.painPoints?.length ? (
+              <div className="sm:col-span-2">
+                <dt className="text-[12.5px] text-muted-foreground">Their problem</dt>
+                <dd className="mt-0.5 leading-relaxed text-foreground">
+                  {audience.painPoints.join(dot)}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+        </div>
+      )}
+
+      {/* Every asset, its length, and a way to open it. */}
+      {sections.length > 0 && (
+        <div className="rounded-[14px] border border-border/70 bg-card p-6">
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              <FileText className="h-3.5 w-3.5" strokeWidth={2} />
+              What was written
+            </p>
+            <Link to="/content" className="text-[12.5px] font-semibold text-primary">
+              Open the content
+            </Link>
+          </div>
+
+          <ul className="divide-y divide-border/70">
+            {sections.map((s) => (
+              <li key={s.key} className="flex items-center justify-between gap-4 py-2.5">
+                <span className="flex min-w-0 items-center gap-2">
+                  {s.status === "completed" ? (
+                    <Check className="h-3.5 w-3.5 flex-none text-emerald-600 dark:text-emerald-400" strokeWidth={2.5} />
+                  ) : s.status === "failed" ? (
+                    <X className="h-3.5 w-3.5 flex-none text-destructive" strokeWidth={2.5} />
+                  ) : (
+                    <Circle className="h-3.5 w-3.5 flex-none text-muted-foreground/50" />
+                  )}
+                  <span className="truncate text-[14.5px] text-foreground">{s.label}</span>
+                  {s.truncated && (
+                    <span className="flex-none rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                      cut off
+                    </span>
+                  )}
+                </span>
+                <span className="flex-none text-[13px] tabular-nums text-muted-foreground">
+                  {s.words ? `${s.words.toLocaleString()} words` : "—"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* The videos themselves, not a count of them. */}
+      {videos.length > 0 && (
+        <div className="rounded-[14px] border border-border/70 bg-card p-6">
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              <Film className="h-3.5 w-3.5" strokeWidth={2} />
+              Filmed
+            </p>
+            <Link to="/film" className="text-[12.5px] font-semibold text-primary">
+              Open the library
+            </Link>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {videos.map((v) => (
+              <div key={v.id} className="flex gap-3 rounded-xl border border-border/70 p-3">
+                <div className="h-16 w-24 flex-none overflow-hidden rounded-lg bg-[#0d1b2a]">
+                  {v.thumbnailUrl ? (
+                    <img src={v.thumbnailUrl} alt="" className="h-full w-full object-contain" />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-white/40">
+                      <Film className="h-5 w-5" />
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[14px] font-medium text-foreground">
+                    {v.title || "Untitled"}
+                  </p>
+                  <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+                    {v.status === "completed"
+                      ? `${v.duration ? Math.round(v.duration) + "s" : "Ready"}${v.captions ? dot + "subtitled" : ""}`
+                      : v.status === "failed"
+                        ? v.failureReason || "Failed"
+                        : "Still rendering"}
+                  </p>
+                  {v.exactScript && (
+                    <p className="mt-1 text-[11.5px] text-muted-foreground">Your script, word for word</p>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      )}
 
-      <div className="rounded-[14px] border border-border/70 bg-card p-6">
-        <p className="mb-4 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          <FileCheck className="h-3.5 w-3.5" strokeWidth={2} />
-          What was written
-        </p>
-        <dl className="space-y-2.5 text-[14.5px]">
-          <div className="flex items-baseline justify-between gap-4">
-            <dt className="text-muted-foreground">Articles</dt>
-            <dd className="font-medium tabular-nums text-foreground">{report.articleCount}</dd>
-          </div>
-          <div className="flex items-baseline justify-between gap-4">
-            <dt className="text-muted-foreground">Video scripts</dt>
-            <dd className="font-medium tabular-nums text-foreground">{report.scriptCount}</dd>
-          </div>
-          <div className="flex items-baseline justify-between gap-4">
-            <dt className="text-muted-foreground">Research briefs</dt>
-            <dd className="font-medium tabular-nums text-foreground">{report.researchCount}</dd>
-          </div>
-        </dl>
-      </div>
+      {/*
+        Said plainly, because the alternative is letting someone assume this
+        page knows something it does not. Nothing in the product measures what
+        happens after a video is published.
+      */}
+      <p className="px-1 text-[13px] leading-relaxed text-muted-foreground">
+        This report covers what the campaign produced. Views, replies and meetings
+        are not tracked yet — nothing here measures what happens after you publish.
+      </p>
     </div>
+  );
+}
+
+/** Small factual label. Same shape as the chips on the recipe cards. */
+function Chip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-md bg-secondary px-2 py-0.5 text-[12px] font-medium text-secondary-foreground">
+      {children}
+    </span>
   );
 }

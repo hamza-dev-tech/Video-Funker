@@ -103,6 +103,19 @@ app.use('/api/billing/webhook', stripeWebhook);
 */
 app.use(
   express.json({
+    /*
+      25mb, because express.json defaults to 100kb.
+
+      Avatar reference images are sent as base64 inside the JSON body, and
+      base64 inflates by roughly a third — so a 149KB photo arrives as about
+      200KB and was rejected outright with "request entity too large". The
+      customer saw "Couldn't start generation" and no reason.
+
+      Three references at the client's 1536px cap are comfortably inside this,
+      and the client now shrinks them before sending, so the ceiling is a guard
+      rather than a working limit.
+    */
+    limit: '25mb',
     verify: (req, _res, buf) => {
       (req as any).rawBody = buf;
     },

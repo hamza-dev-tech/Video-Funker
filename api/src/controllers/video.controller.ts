@@ -8,14 +8,49 @@ import Content from '../models/Content';
 import CustomAvatar from '../models/CustomAvatar';
 import { sendSuccess } from '../utils/response';
 import { BadRequestError, NotFoundError, AppError } from '../errors';
-import { generateHeygenVideoService, getHeygenVideoByIdService } from './heygen.controller';
+import {
+  generateHeygenVideoService,
+  generateHeygenV3VideoService,
+  getHeygenVideoByIdService,
+  getHeygenVideoStatusService,
+  VIDEO_ENGINES,
+  type VideoEngine,
+} from './heygen.controller';
 import { markVideoUsage } from '../services/usage.service';
 import { deleteVideoService } from '../services/video.service';
 
 const UPLOADS_ROOT = path.join(__dirname, '../..', 'uploads', 'campaigns');
 
 export const generateVideo = async (req: AuthRequest, res: Response): Promise<void> => {
-  const { campaignId, script, heygenAvatarId, avatarType, voiceId, voiceName, voiceCloneId } = req.body;
+  const {
+    campaignId, script, heygenAvatarId, avatarType, voiceId, voiceName, voiceCloneId,
+    renderMode: requestedMode, captions, backdrop, engine: requestedEngine, resolution,
+  } = req.body;
+
+  /*
+    The rendering engine, and the resolution.
+
+    Defaulting to avatar_iv — HeyGen's own default and the broadest-supported
+    high-fidelity engine — rather than to whatever the base pipeline gives.
+    Anything unrecognised falls back to it too, so a stale client cannot
+    silently downgrade a render.
+  */
+  const engine: VideoEngine = VIDEO_ENGINES.includes(requestedEngine)
+    ? requestedEngine
+    : 'avatar_iv';
+  const outputResolution: '720p' | '1080p' | '4k' =
+    resolution === '720p' || resolution === '4k' ? resolution : '1080p';
+
+  /*
+    Which pipeline renders this.
+
+    'exact' speaks the script as written; 'agent' lets HeyGen author its own
+    from a prompt. Defaulting to 'exact' because it is what the rest of this
+    product is built for — eight AI steps upstream produce a script, and the
+    agent rewrites it. Anything unrecognised falls back to 'exact' rather than
+    silently choosing the more surprising behaviour.
+  */
+  const renderMode: 'exact' | 'agent' = requestedMode === 'agent' ? 'agent' : 'exact';
   if (!campaignId || !script) throw new BadRequestError('campaignId and script are required');
   if (!heygenAvatarId) throw new BadRequestError('heygenAvatarId is required');
   if (!voiceId) throw new BadRequestError('voiceId is required');
@@ -61,19 +96,51 @@ export const generateVideo = async (req: AuthRequest, res: Response): Promise<vo
     voiceName: voiceName || null,
     voiceCloneId: voiceCloneId || null,
     script,
+    renderMode,
+    captions: captions !== false,
+    backdrop: typeof backdrop === 'string' ? backdrop : null,
+    engine,
+    resolution: outputResolution,
     status: 'thinking',
   });
 
 
   try {
-    const heygenVideo = await generateHeygenVideoService({
-      heygenAvatarId,
-      voiceId,
-      script,
-      callback_id: video._id.toString(),
-      callbackUrl,
-      orientation,
-    });
+    const heygenVideo =
+      renderMode === 'exact'
+        ? await generateHeygenV3VideoService({
+            heygenAvatarId,
+            voiceId,
+            script,
+            callback_id: video._id.toString(),
+            callbackUrl,
+            orientation,
+            title: campaign.name,
+            caption: captions !== false,
+            backdrop: typeof backdrop === 'string' ? backdrop : null,
+            engine,
+            resolution: outputResolution,
+          })
+        : await generateHeygenVideoService({
+            heygenAvatarId,
+            voiceId,
+            script,
+            callback_id: video._id.toString(),
+            callbackUrl,
+            orientation,
+          });
+
+    /*
+      Exact renders keep the title we gave them.
+
+      The agent invents its own — which is how a customer's campaign ended up
+      called "The Evolution of Buyer Engagement & Form Optimization". On this
+      path nothing upstream will overwrite it, because /v1/video_status.get
+      returns no title at all, so setting it here is what the library shows.
+    */
+    if (renderMode === 'exact' && !video.title) {
+      video.title = campaign.name;
+    }
 
     video.videoId = heygenVideo.video_id;
     video.videoSessionId = heygenVideo.session_id;
@@ -112,9 +179,7 @@ export const syncVideoById = async (req: AuthRequest, res: Response): Promise<vo
   if (!video) {
     throw new NotFoundError('Video not found');
   }
-  const response = await getHeygenVideoByIdService(
-    video.videoId as string
-  );
+  const response = await getHeygenVideoStatusService(video.videoId as string, 'agent');
 
   if (!response) {
     throw new AppError(
@@ -123,7 +188,10 @@ export const syncVideoById = async (req: AuthRequest, res: Response): Promise<vo
     );
   }
 
-  video.status = response.status;
+  // Same normalisation as the reconciler — an unexpected value here used to
+  // throw on save() and be reported as "Failed to fetch video from HeyGen".
+  video.status = normaliseVideoStatus(response.status, video.status);
+  video.upstreamStatus = response.status ? String(response.status) : video.upstreamStatus;
 
   // metadata
   video.duration = response.duration;
@@ -143,6 +211,35 @@ export const syncVideoById = async (req: AuthRequest, res: Response): Promise<vo
 
 /** Statuses HeyGen can still move away from. */
 const IN_FLIGHT_STATUSES = ['thinking', 'generating'];
+
+type VideoStatus = 'thinking' | 'generating' | 'completed' | 'failed';
+
+/**
+ * Forces whatever HeyGen sends into the four values our schema allows.
+ *
+ * The HeygenVideoResponse interface claims the two vocabularies match, but it
+ * is hand-written, not generated from their spec — and if HeyGen ever returns
+ * anything else ('processing', 'queued', 'pending'), assigning it straight to
+ * the document makes save() throw a validation error. Both the reconciler and
+ * the manual Sync wrap that in a try/catch that deliberately swallows upstream
+ * failures, so the write would vanish and the card would sit on "Filming"
+ * forever — the exact symptom we just spent this work removing.
+ *
+ * Unknown values are treated as still-rendering rather than failed: a status we
+ * do not recognise is not evidence that anything went wrong, and leaving the
+ * row in flight keeps it eligible for the next reconcile.
+ */
+const normaliseVideoStatus = (raw: unknown, fallback: VideoStatus): VideoStatus => {
+  const value = String(raw || '').toLowerCase();
+  if (value === 'completed' || value === 'success' || value === 'done') return 'completed';
+  if (value === 'failed' || value === 'error') return 'failed';
+  if (value === 'thinking') return 'thinking';
+  if (['generating', 'processing', 'pending', 'queued', 'waiting', 'in_progress'].includes(value)) {
+    return 'generating';
+  }
+  if (value) console.warn(`[video] unrecognised HeyGen status "${value}" — leaving as ${fallback}`);
+  return fallback;
+};
 
 /**
  * How stale an unfinished render must be before we re-ask HeyGen about it.
@@ -183,20 +280,26 @@ const reconcileInFlightVideos = async (videos: any[]): Promise<void> => {
   await Promise.all(
     stale.map(async (video) => {
       try {
-        const remote = await getHeygenVideoByIdService(video.videoId);
+        // Both paths now live under /v3/videos, so both poll the same route.
+        const remote = await getHeygenVideoStatusService(video.videoId, 'agent');
         if (!remote?.status || remote.status === video.status) return;
 
         const url = remote.video_url || '';
+        const next = normaliseVideoStatus(remote.status, video.status);
+
+        // Keep HeyGen's own word so the card can say "queued" rather than
+        // claiming it is filming when nothing has started.
+        video.upstreamStatus = remote.status ? String(remote.status) : video.upstreamStatus;
 
         // Same rule as the webhook: never write "completed" without a link, or
         // the card becomes a dead end with no way to recover the render.
-        video.status = url ? remote.status : video.status;
+        video.status = next === 'completed' && !url ? video.status : next;
         if (remote.duration) video.duration = remote.duration;
         if (remote.title) video.title = remote.title;
         if (url) video.videoUrl = url;
         if (remote.thumbnail_url) video.thumbnailUrl = remote.thumbnail_url;
 
-        if (remote.status === 'failed') {
+        if (next === 'failed') {
           video.status = 'failed';
           video.failureReason =
             (remote as any)?.error?.message || 'HeyGen reported this render as failed.';

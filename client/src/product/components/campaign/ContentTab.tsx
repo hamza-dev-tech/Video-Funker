@@ -14,6 +14,7 @@ import { Loader2, FileText, Film, MessageSquare, Search, RefreshCw, AlertTriangl
 import { useToast } from "@product/hooks/use-toast";
 import { RegenerateAllDialog } from "@product/components/campaign/RegenerateAllDialog";
 import { ContentBriefWizard } from "@product/components/campaign/ContentBriefWizard";
+import { NextStepBanner } from "@product/components/campaign/NextStepBanner";
 import type { CampaignBrief } from "@product/components/campaign/campaignAngles";
 import {
   fetchContent,
@@ -275,6 +276,10 @@ export function ContentTab({ campaignId, hasIcp }: ContentTabProps) {
 
   return (
     <div className="flex flex-col h-full">
+      <div className="px-6 pt-4">
+        <NextStepBanner campaignId={campaignId} />
+      </div>
+
       <div className="flex flex-col gap-3 px-6 py-4 border-b border-border sm:flex-row sm:items-center sm:justify-between">
         <div>
           {/*
@@ -515,6 +520,10 @@ export function ContentTab({ campaignId, hasIcp }: ContentTabProps) {
         onSaved={(updated) => setContent(updated)}
       />
 
+      {/*
+        Only once there is a script to film. Pointing someone at the Film tab
+        before the video script exists sends them to an empty state.
+      */}
       <RegenerateAllDialog
         open={regenAllOpen}
         onOpenChange={setRegenAllOpen}

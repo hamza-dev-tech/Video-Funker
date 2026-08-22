@@ -154,11 +154,20 @@ const uri = env.MONGODB_URI;
 if (!uri) {
   row('fail', 'MONGODB_URI', 'not set in api/.env');
 } else {
-  const hostPort = uri.replace(/^mongodb(\+srv)?:\/\//, '').split('/')[0];
+  // Never print the connection string as given: it carries the password.
+  const shown = uri.replace(/\/\/[^@]*@/, '//***@').split('?')[0];
+  const srv = /^mongodb\+srv:/i.test(uri);
+  const hostPort = uri.replace(/^mongodb(\+srv)?:\/\//, '').split('/')[0].split('@').pop();
   const [host, port] = hostPort.split(':');
-  const reachable = await tcpOpen(Number(port) || 27017, host.includes('@') ? host.split('@')[1] : host, 2500);
-  row(reachable ? 'pass' : 'fail', 'mongod reachable', reachable ? hostPort : `${hostPort} refused — is the container running? docker start videofunker-mongo`);
+  const atlas = /mongodb\.net$/i.test(host);
+  row('info', 'target', `${shown}${atlas ? '  ← REMOTE cluster, not local' : ''}`);
 
+  // An +srv URI names no port: the real hosts come from a DNS SRV lookup, so
+  // a TCP probe against the cluster name always fails. Let the driver do it.
+  const reachable = srv ? true : await tcpOpen(Number(port) || 27017, host, 2500);
+  if (!srv) {
+    row(reachable ? 'pass' : 'fail', 'mongod reachable', reachable ? hostPort : `${hostPort} refused — docker start videofunker-mongo`);
+  }
   if (reachable) {
     try {
       const { default: mongoose } = await import('mongoose');

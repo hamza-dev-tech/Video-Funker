@@ -27,6 +27,8 @@ export interface IICPProfile extends Document {
     This was the only paid AI endpoint in the product with no cap of any kind
     and no counters on the model, while three separate buttons pointed at it.
   */
+  /** Paid AI suggestion requests made against this ICP. */
+  suggestionCalls: number;
   documentGenerationCount: number;
   maxDocumentGenerations: number;
 }
@@ -52,6 +54,7 @@ const icpProfileSchema = new mongoose.Schema(
     generatedFilePath: { type: String, default: null },
     generatedDocument: { type: String, default: null },
     generatedAt: { type: Date, default: null },
+    suggestionCalls: { type: Number, default: 0, min: 0 },
     documentGenerationCount: { type: Number, default: 0, min: 0 },
     maxDocumentGenerations: { type: Number, default: 5, min: 0 },
   },

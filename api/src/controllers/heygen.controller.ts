@@ -553,6 +553,325 @@ export const syncCustomAvatar = async (
 
 
 
+/**
+ * Renders a video from an exact script — POST /v2/video/generate.
+ *
+ * The alternative, /v3/video-agents, is an autonomous agent: HeyGen's own docs
+ * describe it as handling "scripting, avatar selection, scene composition and
+ * rendering" from a single prompt. That is the wrong tool for this product.
+ * Eight AI steps exist upstream to produce a script, and handing that script to
+ * something that rewrites it makes those steps pointless — the proof was a
+ * render that came back titled "The Evolution of Buyer Engagement & Form
+ * Optimization", a subject the customer never chose.
+ *
+ * This endpoint speaks the words it is given, in the voice it is given. Fewer
+ * stages upstream also means less queueing: a measured agent render sat at
+ * "pending" for eleven minutes before starting.
+ *
+ * No callback_url here — v2 webhooks are configured per account rather than per
+ * request. That is fine because the reconciler in video.controller polls
+ * /v1/video_status.get for anything still in flight, which is the same path
+ * that already recovers agent renders whose callback goes missing.
+ */
+export interface GenerateAvatarVideoPayload {
+  heygenAvatarId: string;
+  voiceId: string;
+  script: string;
+  callback_id: string;
+  orientation?: string;
+  title?: string;
+  /** Burn subtitles into the video. */
+  caption?: boolean;
+  /** Solid backdrop as #RRGGBB. Omit to keep the avatar's own. */
+  backdrop?: string | null;
+}
+
+/**
+ * 1080p, both orientations.
+ *
+ * This was 1280x720 — a sensible default for a demo and the wrong one for a
+ * product selling presenter video as the deliverable. 720p is visibly soft on a
+ * modern phone, and it is the first thing that makes AI video look cheap. HeyGen
+ * prices per second of output rather than per pixel, so the higher resolution
+ * costs nothing extra; it was simply never asked for.
+ */
+const VIDEO_DIMENSIONS: Record<string, { width: number; height: number }> = {
+  landscape: { width: 1920, height: 1080 },
+  portrait: { width: 1080, height: 1920 },
+};
+
+/** Guards the backdrop before it reaches HeyGen, which 400s on a bad value. */
+const isHexColour = (v?: string | null): v is string =>
+  typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v.trim());
+
+export const generateHeygenAvatarVideoService = async ({
+  heygenAvatarId,
+  voiceId,
+  script,
+  callback_id,
+  orientation,
+  title,
+  caption,
+  backdrop,
+}: GenerateAvatarVideoPayload): Promise<HeygenVideoResponse> => {
+  const apiKey = process.env.HEYGEN_API_KEY;
+  if (!apiKey) {
+    throw new AppError('HEYGEN_API_KEY is not configured on the server', 500);
+  }
+
+  const shape = VIDEO_ORIENTATION[String(orientation)] ?? 'landscape';
+
+  /*
+    The brand kit applies here too.
+
+    Confirmed by looking at a real agent render: the logo in the corner comes
+    from the kit, and the agent path was passing brand_kit_id while this one was
+    not. Switching pipelines would have silently dropped the customer's logo off
+    every video — a regression nobody would attribute to the endpoint change.
+  */
+  const brand = await getBrandKits();
+
+  const payload = {
+    /*
+      Burned-in subtitles, on by default.
+
+      The overwhelming majority of feed video is watched with the sound off, so
+      a talking head with no captions is a talking head nobody hears. HeyGen can
+      render them into the file, which survives every platform — unlike an
+      uploaded subtitle track, which most social players ignore.
+    */
+    caption: caption !== false,
+    title: title || undefined,
+    callback_id,
+    dimension: VIDEO_DIMENSIONS[shape],
+    brand_kit_id: brand?.brand_kit_id || undefined,
+    video_inputs: [
+      {
+        character: {
+          type: 'avatar',
+          avatar_id: heygenAvatarId,
+          avatar_style: 'normal',
+        },
+        voice: {
+          // Not a prompt. The exact words, spoken.
+          type: 'text',
+          input_text: script,
+          voice_id: voiceId,
+        },
+        /*
+          Only sent when one was chosen. Omitting the key entirely leaves the
+          avatar's own backdrop in place; sending an empty or invalid value is
+          rejected outright rather than ignored.
+        */
+        ...(isHexColour(backdrop)
+          ? { background: { type: 'color', value: backdrop } }
+          : {}),
+      },
+    ],
+  };
+
+  const response = await fetch('https://api.heygen.com/v2/video/generate', {
+    method: 'POST',
+    headers: {
+      'X-Api-Key': apiKey,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const result: any = await response.json().catch(() => null);
+
+  if (!response.ok || result?.error) {
+    const detail =
+      result?.error?.message || result?.message || `HTTP ${response.status}`;
+    throw new AppError(`HeyGen could not start this render: ${detail}`, 502);
+  }
+
+  const videoId = result?.data?.video_id;
+  if (!videoId) {
+    throw new AppError('HeyGen accepted the request but returned no video id.', 502);
+  }
+
+  return {
+    video_id: videoId,
+    status: 'generating',
+  };
+};
+
+/**
+ * Reads a render's state, from whichever endpoint created it.
+ *
+ * The two paths do not share a status route: agent renders live under
+ * /v3/videos/{id}, exact-script renders under /v1/video_status.get. Polling the
+ * wrong one 404s, which the reconciler swallows — so the card would sit on
+ * "Rendering" forever while the video was finished and waiting. Verified
+ * against a live render: v1 returned "pending" for an eleven-minute-old job.
+ *
+ * Both are normalised to the same shape so callers do not have to care.
+ */
+/**
+ * The rendering engine. This is the single largest quality lever HeyGen sells.
+ *
+ * Measured on a real avatar in this account, HeyGen reported:
+ *   supported_api_engines: ["avatar_v", "avatar_iv", "avatar_iii"]
+ *
+ * We were asking for none of them. Both endpoints used previously —
+ * /v3/video-agents and /v2/video/generate — take no engine field at all, so
+ * every render came out of the base pipeline while the avatar was capable of
+ * the two high-fidelity ones. That is most of why finished videos looked, in
+ * the customer's words, "100 percent fake".
+ *
+ *   avatar_iii — photo-specialised, cheapest, softest
+ *   avatar_iv  — HeyGen's default, broadest support
+ *   avatar_v   — highest fidelity they offer
+ */
+export const VIDEO_ENGINES = ['avatar_iii', 'avatar_iv', 'avatar_v'] as const;
+export type VideoEngine = (typeof VIDEO_ENGINES)[number];
+
+/** Orientation in the vocabulary /v3/videos uses. */
+const ASPECT_RATIO: Record<string, string> = {
+  vertical: '9:16',
+  portrait: '9:16',
+  square: '1:1',
+  horizontal: '16:9',
+  landscape: '16:9',
+};
+
+export interface GenerateV3VideoPayload {
+  heygenAvatarId: string;
+  voiceId: string;
+  script: string;
+  callback_id: string;
+  callbackUrl?: string;
+  orientation?: string;
+  title?: string;
+  caption?: boolean;
+  backdrop?: string | null;
+  engine?: VideoEngine;
+  resolution?: '720p' | '1080p' | '4k';
+}
+
+/**
+ * Renders through /v3/videos — the endpoint that actually exposes quality.
+ *
+ * This supersedes both earlier paths. /v3/video-agents writes its own script
+ * from a prompt, which defeats the eight AI steps upstream that exist to write
+ * one. /v2/video/generate speaks the script correctly but offers no engine
+ * choice, no resolution above what the dimension implies, and no aspect ratio
+ * of its own.
+ *
+ * This one takes the exact script, the engine, the resolution, the aspect ratio,
+ * burned-in captions and a background, and returns a video id that the existing
+ * /v3/videos/{id} poller already understands.
+ */
+export const generateHeygenV3VideoService = async ({
+  heygenAvatarId,
+  voiceId,
+  script,
+  callback_id,
+  callbackUrl,
+  orientation,
+  title,
+  caption,
+  backdrop,
+  engine,
+  resolution,
+}: GenerateV3VideoPayload): Promise<HeygenVideoResponse> => {
+  const apiKey = process.env.HEYGEN_API_KEY;
+  if (!apiKey) {
+    throw new AppError('HEYGEN_API_KEY is not configured on the server', 500);
+  }
+
+  const chosenEngine: VideoEngine = VIDEO_ENGINES.includes(engine as VideoEngine)
+    ? (engine as VideoEngine)
+    : 'avatar_iv';
+
+  const payload: Record<string, unknown> = {
+    type: 'avatar',
+    avatar_id: heygenAvatarId,
+    // The words, not a prompt. This endpoint speaks what it is given.
+    script,
+    voice_id: voiceId,
+    engine: { type: chosenEngine },
+    aspect_ratio: ASPECT_RATIO[String(orientation)] || '16:9',
+    resolution: resolution || '1080p',
+    callback_id,
+    title: title || undefined,
+  };
+
+  // Burned into the file rather than a sidecar track, because social players
+  // ignore sidecars and most feed video is watched with the sound off.
+  if (caption !== false) payload.caption = { style: 'default' };
+
+  if (callbackUrl && callbackUrl !== 'undefined') payload.callback_url = callbackUrl;
+
+  if (isHexColour(backdrop)) {
+    payload.background = { type: 'color', value: backdrop };
+  }
+
+  const response = await fetch('https://api.heygen.com/v3/videos', {
+    method: 'POST',
+    headers: {
+      'X-Api-Key': apiKey,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const result: any = await response.json().catch(() => null);
+
+  if (!response.ok || result?.error) {
+    const detail = result?.error?.message || result?.message || `HTTP ${response.status}`;
+    throw new AppError(`HeyGen could not start this render: ${detail}`, 502);
+  }
+
+  const videoId = result?.data?.video_id;
+  if (!videoId) {
+    throw new AppError('HeyGen accepted the request but returned no video id.', 502);
+  }
+
+  return { video_id: videoId, status: 'generating' };
+};
+
+export const getHeygenVideoStatusService = async (
+  videoId: string,
+  mode: 'exact' | 'agent'
+): Promise<any> => {
+  const apiKey = process.env.HEYGEN_API_KEY;
+  if (!apiKey) {
+    throw new AppError('HEYGEN_API_KEY is not configured on the server', 500);
+  }
+
+  if (mode === 'agent') return getHeygenVideoByIdService(videoId);
+
+  const response = await fetch(
+    `https://api.heygen.com/v1/video_status.get?video_id=${encodeURIComponent(videoId)}`,
+    { method: 'GET', headers: { 'X-Api-Key': apiKey, Accept: 'application/json' } }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new AppError(`HeyGen Video API Error [${response.status}]: ${error}`, 502);
+  }
+
+  const result: any = await response.json();
+  const d = result?.data || {};
+
+  return {
+    id: d.id || videoId,
+    status: d.status,
+    video_url: d.video_url || d.video_url_caption || '',
+    thumbnail_url: d.thumbnail_url || '',
+    duration: d.duration ?? null,
+    // v1 has no title of its own — the caller keeps whatever it stored, which
+    // for an exact render is the customer's own campaign name.
+    title: '',
+    error: d.error || null,
+  };
+};
+
 export const getHeygenVideoByIdService = async (
   videoId: string
 ) => {

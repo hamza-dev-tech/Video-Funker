@@ -8,6 +8,8 @@ import type { HeygenVoice } from "@product/services/heygenVoiceService";
 import type { VoiceClone } from "@product/lib/voice-clone-api";
 import type { CampaignVideoUsage } from "@product/lib/subscription-api";
 import { cn } from "@product/lib/utils";
+import { BACKDROPS } from "@product/components/campaign/film/videoBackdrops";
+import { VIDEO_ENGINES } from "@product/components/campaign/film/videoEngines";
 
 interface StepReviewProps {
   selectedAvatar: HeygenAvatar | null;
@@ -16,6 +18,14 @@ interface StepReviewProps {
   script: string;
   usage?: CampaignVideoUsage;
   generating: boolean;
+  renderMode: "exact" | "agent";
+  onRenderModeChange: (mode: "exact" | "agent") => void;
+  captions: boolean;
+  onCaptionsChange: (on: boolean) => void;
+  backdrop: string;
+  onBackdropChange: (id: string) => void;
+  engine: "avatar_iii" | "avatar_iv" | "avatar_v";
+  onEngineChange: (id: "avatar_iii" | "avatar_iv" | "avatar_v") => void;
   onGenerate: () => void;
 }
 
@@ -26,6 +36,14 @@ export function StepReview({
   script,
   usage,
   generating,
+  renderMode,
+  onRenderModeChange,
+  captions,
+  onCaptionsChange,
+  backdrop,
+  onBackdropChange,
+  engine,
+  onEngineChange,
   onGenerate,
 }: StepReviewProps) {
   const [scriptOpen, setScriptOpen] = useState(false);
@@ -127,6 +145,175 @@ export function StepReview({
           </button>
         )}
       </div>
+
+      {/*
+        How this gets rendered.
+
+        Both are real HeyGen pipelines and they behave very differently, so the
+        choice belongs on the screen where the cost is about to be spent rather
+        than buried in settings. "Exact" is first and default: this product
+        writes the script, so the script should be what gets spoken.
+      */}
+      <div className="rounded-xl border border-border p-4">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          How it gets made
+        </p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {([
+            {
+              id: "exact" as const,
+              title: "Speak my script",
+              body: "Your presenter says these exact words. Faster, and the result is the same every time.",
+            },
+            {
+              id: "agent" as const,
+              title: "Let HeyGen write it",
+              body: "HeyGen writes its own script and picks its own title from your topic. Cheaper per second, slower to render.",
+            },
+          ]).map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => onRenderModeChange(opt.id)}
+              disabled={generating}
+              className={cn(
+                "rounded-xl border p-3.5 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60",
+                renderMode === opt.id
+                  ? "border-primary bg-primary/[0.07] ring-1 ring-primary"
+                  : "border-border/70 hover:border-primary/45 hover:bg-secondary/50",
+              )}
+            >
+              <span className="block text-[14px] font-semibold text-foreground">{opt.title}</span>
+              <span className="mt-1 block text-[12.5px] leading-snug text-muted-foreground">
+                {opt.body}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/*
+        How lifelike the render is.
+
+        This is the single biggest quality lever HeyGen sells and the product
+        was never pulling it: avatars in this account support avatar_v,
+        avatar_iv and avatar_iii, and every render asked for none of them, so
+        the base pipeline produced a face capable of far better. Named for what
+        they do — a customer choosing between "avatar_iv" and "avatar_v" is
+        being asked to read a changelog.
+      */}
+      {renderMode === "exact" && (
+        <div className="rounded-xl border border-border p-4">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Render quality
+          </p>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {VIDEO_ENGINES.map((e) => (
+              <button
+                key={e.id}
+                type="button"
+                onClick={() => onEngineChange(e.id)}
+                disabled={generating}
+                className={cn(
+                  "rounded-xl border p-3 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60",
+                  engine === e.id
+                    ? "border-primary bg-primary/[0.07] ring-1 ring-primary"
+                    : "border-border/70 hover:border-primary/45 hover:bg-secondary/50",
+                )}
+              >
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="text-[13.5px] font-semibold text-foreground">{e.label}</span>
+                  <span className="text-[11.5px] tabular-nums text-muted-foreground">{e.cost}</span>
+                </span>
+                <span className="mt-1 block text-[12px] leading-snug text-muted-foreground">
+                  {e.blurb}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/*
+        The backdrop, as named swatches.
+
+        A generated presenter comes with whatever wall its recipe described —
+        usually grey studio, which is also what every other AI video on the feed
+        looks like. HeyGen applies a colour at render time, so this costs nothing
+        and needs no new avatar. Named rather than a hex picker: a colour field
+        asks the customer to be a colour designer, which is the same mistake the
+        blank prompt box made.
+      */}
+      {renderMode === "exact" && (
+        <div className="rounded-xl border border-border p-4">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Backdrop
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {BACKDROPS.map((b) => {
+              const active = backdrop === b.id;
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => onBackdropChange(b.id)}
+                  disabled={generating}
+                  title={b.note}
+                  aria-pressed={active}
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg border py-1.5 pl-1.5 pr-3 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60",
+                    active
+                      ? "border-primary bg-primary/[0.07] ring-1 ring-primary"
+                      : "border-border/70 hover:border-primary/45 hover:bg-secondary/50",
+                  )}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "h-6 w-6 flex-none rounded-md border",
+                      b.color ? "border-black/10" : "border-dashed border-border",
+                    )}
+                    style={{ background: b.swatch }}
+                  />
+                  <span className="text-[13px] font-medium text-foreground">{b.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-2.5 text-[12.5px] leading-relaxed text-muted-foreground">
+            {BACKDROPS.find((b) => b.id === backdrop)?.note}
+          </p>
+        </div>
+      )}
+
+      {/*
+        Subtitles, and only where they are actually available.
+
+        The agent pipeline composes its own output and does not take this
+        option, so offering it there would be a control that silently does
+        nothing. Defaulted on because the majority of feed video is watched
+        with the sound off — an uncaptioned talking head is one nobody hears.
+      */}
+      {renderMode === "exact" && (
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-4">
+          <input
+            type="checkbox"
+            checked={captions}
+            onChange={(e) => onCaptionsChange(e.target.checked)}
+            disabled={generating}
+            className="mt-0.5 h-4 w-4 flex-none accent-primary"
+          />
+          <span>
+            <span className="block text-[14px] font-semibold text-foreground">
+              Burn in subtitles
+            </span>
+            <span className="mt-0.5 block text-[12.5px] leading-snug text-muted-foreground">
+              Rendered into the file, so they survive every platform. Most feed
+              video is watched with the sound off.
+            </span>
+          </span>
+        </label>
+      )}
 
       {/* Usage */}
       <div className="rounded-xl border border-border p-4 space-y-2">

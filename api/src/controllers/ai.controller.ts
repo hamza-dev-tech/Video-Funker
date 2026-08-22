@@ -5,7 +5,7 @@ import { AuthRequest } from '../middleware/auth';
 import ICPProfile from '../models/ICPProfile';
 import Conversation from '../models/Conversation';
 import { sendSuccess } from '../utils/response';
-import { BadRequestError, ForbiddenError, NotFoundError } from '../errors';
+import { AppError, BadRequestError, ForbiddenError, NotFoundError } from '../errors';
 import { getOpenAI, chatModel } from '../config/openai';
 
 
@@ -312,6 +312,133 @@ export const downloadDocument = async (req: AuthRequest, res: Response): Promise
   res.download(absolutePath, `icp-report-${campaignId}.txt`);
 };
 
+
+/**
+ * Suggests more options for one ICP field, tailored to the ICP so far.
+ *
+ * The static lists in the browser are a good floor — instant, free, and they
+ * stop the three hardest fields being blank boxes. They are also generic to an
+ * industry: a ten-person startup and a thousand-person enterprise selling
+ * different things get identical buying triggers, because a hand-written table
+ * cannot know what the customer actually sells.
+ *
+ * This reads what they have already filled in — the solution, the size, the
+ * region, the roles — and proposes options that fit that specific business.
+ * It is the difference between "Raised a Series A" and a trigger that only
+ * makes sense for what this company sells.
+ *
+ * Metered, because it is a paid call reachable from a button. That was the
+ * exact mistake the ICP document endpoint made.
+ */
+const SUGGESTABLE: Record<string, string> = {
+  roles: 'job titles of the people who decide or influence this purchase',
+  painPoints: 'specific, concrete problems this buyer is living with',
+  buyingTriggers: 'observable events that signal this buyer is ready to buy',
+  messagingAngles: 'angles the messaging could take with this buyer',
+};
+
+const MAX_SUGGESTION_CALLS = 20;
+
+export const suggestIcpOptions = async (req: AuthRequest, res: Response): Promise<void> => {
+  const { campaignId, field } = req.body || {};
+  if (!campaignId) throw new BadRequestError('campaignId is required');
+
+  const wanted = SUGGESTABLE[String(field)];
+  if (!wanted) {
+    throw new BadRequestError(`field must be one of: ${Object.keys(SUGGESTABLE).join(', ')}`);
+  }
+
+  const profile = await ICPProfile.findOne({ campaignId, userId: req.user!._id });
+  if (!profile) throw new NotFoundError('Save your ICP before asking for suggestions.');
+
+  const d: any = profile.data || {};
+  if (!d.industry && !d.solution) {
+    throw new BadRequestError(
+      'Add your industry or what you sell first — otherwise the suggestions would be generic.'
+    );
+  }
+
+  // Claimed atomically, so a double-click cannot spend two.
+  const used = (profile as any).suggestionCalls ?? 0;
+  const claimed = await ICPProfile.findOneAndUpdate(
+    {
+      _id: profile._id,
+      $or: [
+        { suggestionCalls: { $lt: MAX_SUGGESTION_CALLS } },
+        { suggestionCalls: { $exists: false } },
+      ],
+    },
+    { $inc: { suggestionCalls: 1 } },
+    { new: true }
+  );
+  if (!claimed) {
+    throw new ForbiddenError(
+      `You have used all ${MAX_SUGGESTION_CALLS} suggestion requests for this ICP.`
+    );
+  }
+
+  const context = [
+    d.industry && `Industry: ${d.industry}`,
+    d.companySize && `Company size: ${d.companySize}`,
+    d.regions?.length && `Regions: ${d.regions.join(', ')}`,
+    d.solution && `What we sell: ${d.solution}`,
+    d.roles?.length && `Roles already listed: ${d.roles.join(', ')}`,
+    d.painPoints?.length && `Pain points already listed: ${d.painPoints.join(', ')}`,
+    d.buyingTriggers?.length && `Buying triggers already listed: ${d.buyingTriggers.join(', ')}`,
+    d.additionalNotes && `Notes: ${d.additionalNotes}`,
+  ].filter(Boolean).join('\n');
+
+  const prompt = `You are a B2B demand generation strategist.
+
+Propose 6 options for one field of an ideal customer profile: ${wanted}.
+
+${context}
+
+RULES
+- Specific to this business, not generic to the industry.
+- Do not repeat anything already listed above.
+- Each option is a short phrase a person would recognise, not a sentence of marketing copy.
+- Maximum 9 words each.
+- No invented statistics, company names or product names.
+
+Return ONLY a JSON array of strings. No commentary.`;
+
+  const completion = await getOpenAI().chat.completions.create({
+    model: chatModel(),
+    messages: [
+      { role: 'system', content: 'You return only valid JSON arrays of strings.' },
+      { role: 'user', content: prompt },
+    ],
+    temperature: 0.7,
+    max_tokens: 400,
+  });
+
+  let options: string[] = [];
+  try {
+    const raw = JSON.parse(completion.choices[0].message.content || '[]');
+    if (Array.isArray(raw)) {
+      const existing: string[] = Array.isArray(d[String(field)]) ? d[String(field)] : [];
+      options = raw
+        .filter((x: unknown): x is string => typeof x === 'string')
+        .map((x) => x.trim())
+        .filter((x) => x && !existing.includes(x))
+        .slice(0, 6);
+    }
+  } catch {
+    /* handled below */
+  }
+
+  if (!options.length) {
+    // Give the call back — an unusable response should not cost one.
+    await ICPProfile.updateOne({ _id: profile._id }, { $inc: { suggestionCalls: -1 } });
+    throw new AppError('Could not come up with anything useful. Try again in a moment.', 502);
+  }
+
+  sendSuccess(res, {
+    options,
+    remaining: Math.max(MAX_SUGGESTION_CALLS - (used + 1), 0),
+  });
+};
 
 export const getAdaptiveQuestions = async (req: AuthRequest, res: Response): Promise<void> => {
   const { campaignId } = req.params;

@@ -119,7 +119,7 @@ const STYLE_TREATMENT: Record<Style, string> = {
   Cinematic:
     'cinematic colour grade, soft key light with a gentle rim, shallow depth of field, shot on an 85mm anamorphic lens',
   Pixar:
-    'stylised 3D animated character, soft global illumination, subtle subsurface scattering on the skin, clean modern character design',
+    'stylised 3D animated character in the manner of a modern animated feature, appealing readable character design, large expressive eyes with clear catchlights, soft global illumination with a warm key and gentle rim, subtle subsurface scattering on the skin, clean smooth surfacing, shallow depth of field, not photorealistic',
   Vintage:
     'shot on Kodak Portra 400, warm film grain, soft 1970s studio lighting, muted period colour',
   Noir:
